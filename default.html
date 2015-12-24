@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html onkeypress="checkInput(event)">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>Bike Shops and Beyond</title>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+<base target="_blank">
+<style type="text/css">
+html { height: 100% }
+body { height: 100%; margin: 0; padding: 0 }
+.nobr {
+  white-space:nowrap;
+  padding-left: 2px;
+  padding-right: 4px;
+  }
+#map_canvas {
+  height: 100%
+  }
+#mapControl {
+  color: #FFFFFF;
+  margin: 4px;
+  padding: 4px;
+  background-color: #000000;
+  text-align: center;
+  }
+#mapControl a {
+  color: #FFFFFF;
+  text-decoration: none;
+  }
+#mapControl a:hover {
+  color: #EFEAE4;
+  text-decoration: underline;
+  }
+</style>
+<script src="http://maps.googleapis.com/maps/api/js?libraries=visualization"></script>
+<script>
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-24842081-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+</head>
+
+<script type="text/javascript">
+var iconX = 0;
+var iconImg;
+var iconZ = 0;
+var iconViz = true;
+var infowindow;
+var showApple = false;
+var showIKEA = false;
+var showCinema = false;
+var showFuture = false;
+var showSmithsonian = false;
+var marker;
+
+function checkInput(e) {
+  keynum = 0;
+  if (window.event) // IE
+    keynum = e.keyCode;
+  else if (e.which) // Netscape/Firefox/Opera
+    keynum = e.which;
+  if (keynum == 97 || keynum == 65) // A
+    showApple = pseudoClick("apple.png", showApple);
+  else if (keynum == 99 || keynum == 67) // C
+    showCinema = pseudoClick("cinema.png", showCinema);
+  else if (keynum == 105 || keynum == 73) // I
+    showIKEA = pseudoClick("ikea.png", showIKEA);
+  else if (keynum == 115 || keynum == 83) // S
+    showSmithsonian = pseudoClick("smithsonian.png", showSmithsonian);
+  else if (keynum == 102 || keynum == 70) // F
+    showFuture = pseudoClick("futuregrocery.png", showFuture);
+  else if (keynum == 104 || keynum == 72) {  // H
+    var dataPoints = [];
+    for (var i=0; i < marker.length; i++) {
+      if (marker[i].getVisible() && map.getBounds().contains(marker[i].getPosition())) {
+        if (marker[i].icon == "cycling.png") w = parseFloat(document.getElementById("bikeshopNo").value);
+        else w = 1;
+        dataPoints.push({location: marker[i].getPosition(), weight: w});
+        }
+      }
+    heatmap.setData(dataPoints);
+    heatmap.setMap(map);
+    }
+  // alert(keynum + ": " + String.fromCharCode(keynum));
+  }
+
+function pseudoClick(png, showIt) {
+  showIt = !showIt;
+  if (showIt) iconZ++;
+  for (var i=0; i < marker.length; i++) {
+    if (marker[i].icon == png) {
+      marker[i].setVisible(showIt);
+      if (showIt) marker[i].setZIndex(iconZ);
+      }
+    }
+  return showIt;
+  }
+
+function panFunction(markerNo) {
+  return function() {
+    //map.setZoom(17);
+    //map.panTo(marker[markerNo].getPosition());
+    infowindow.setContent(info[markerNo]);
+    infowindow.open(map, marker[markerNo]);
+    };
+  }
+
+function addIcon(lat, lng, name, addr, link) {
+  marker[iconX] = new google.maps.Marker({map: map, position: new google.maps.LatLng(lat,lng)});
+  marker[iconX].setTitle(name + ", " + addr);
+  marker[iconX].setIcon(iconImg);
+  marker[iconX].setVisible(iconViz);
+  marker[iconX].setZIndex(0);
+  if (link != null && link.length > 0)
+    info[iconX] = "<a href=" + link + ">" + name + "</a><br>";
+  else
+    info[iconX] = name + "<br>";
+  info[iconX] += addr;
+  iconX++;
+  }
+
+function clickIt(box, category) {
+  visibility = box.checked;
+  if (visibility) iconZ++;
+  for (var i=0; i < marker.length; i++)
+    if (marker[i].icon == category) {
+      marker[i].setVisible(visibility);
+      if (visibility) marker[i].setZIndex(iconZ);
+      }
+  }
+
+function clickGroceries(box) {
+  visibility = box.checked;
+  if (visibility) iconZ++;
+  for (var i=0; i < marker.length; i++) {
+    m = marker[i].icon.substr(0, marker[i].icon.indexOf("."));
+    if (m == "grocery" || m == "aldi" || m == "harristeeter" || m == "freshgreens"  || m == "giant" || m == "moms" || m == "murrys" || m == "safeway" ||
+        m == "shoppersfood" || m == "target" || m == "traderjoes" || m == "wegmans" || m == "wfm" || m == "yesmarket") {
+      marker[i].setVisible(visibility);
+      if (visibility) marker[i].setZIndex(iconZ);
+      }
+    }
+  }
+
+function loadDC() {
+  addIcon(38.908913,-77.054700, "District Cycle Works", "2603 P St NW", "http://www.districtcycleworks.com/");
+  addIcon(38.921434,-77.042425, "Bicycle Space - Adams Morgan", "2424 18th St NW", "http://www.bicyclespacedc.com/adams-morgan/");
+  addIcon(38.902342,-77.017208, "Bicycle Space - Downtown", "440 K St NW", "http://www.bicyclespacedc.com/downtown/");
+  addIcon(38.915656,-76.983012, "Bicycle Space - Ivy City", "1512 Oakie St NE", "http://www.bicyclespacedc.com/ivy-city/");
+  addIcon(38.905189,-77.068090, "Bicycle Pro Shop", "3403 M St NW", "http://bicycleproshop.com/");
+  addIcon(38.904622,-77.066117, "Big Wheel Bikes", "1034 33rd St NW", "http://www.bigwheelbikes.com/");
+  addIcon(38.910984,-77.032496, "The Bike Rack - Logan Circle", "1412 Q St NW", "http://thebikerackdc.com/about/logan-circle/");
+  addIcon(38.932871,-76.994864, "The Bike Rack - Brookland", "716 Monroe St NE", "http://thebikerackdc.com/about/brookland/");
+  addIcon(38.897623,-77.007432, "Bikestation (Bike and Roll)", "50 Massachusetts Ave NE", "http://home.bikestation.com/washingtondc");
+  addIcon(38.880588,-76.995162, "Capitol Hill Bikes", "719 8th St SE", "http://capitolhillbikes.com/");
+  addIcon(38.923188,-77.041280, "City Bikes - Adams Morgan", "2501 Champlain St NW", "http://citybikes.com/storelocator/city-bikes-adams-morgan-1.htm");
+  addIcon(38.881028,-76.995166, "City Bikes - Capitol Hill", "709 8th St SE", "http://citybikes.com/storelocator/city-bikes-capitol-hill-3.htm");
+  addIcon(38.900334,-76.991079, "The Daily Rider", "1108 H St NE", "http://thedailyriderdc.com/");
+  addIcon(38.904111,-77.051592, "District Hardware / The Bike Shop", "1108 24th St NW", "http://www.districthardware.com/");
+  addIcon(38.905176,-77.068336, "Revolution Cycles", "3411 M St NW", "http://revolutioncycles.com/");
+  addIcon(38.907923,-77.032123, "Rollin\' Cycles", "1314A 14th St NW", "http://rollincyclesdc.com/");
+  addIcon(38.949420,-77.080687, "Hudson Trail Outfitters", "Tenley Circle, 4530 Wisconsin Ave NW", "http://www.hudsontrail.com/");
+  addIcon(38.941653,-77.027768, "The Bike House", "1240 Upshur St NW", "http://thebikehouse.org/");
+  addIcon(38.905635,-76.980150, "Gearin' Up Bicycles", "1200 Bladensburg Road NE", "http://gearinupbicycles.org/");
+  addIcon(38.912444,-77.031714, "Shinola", "1631 14th St NW", "http://www.shinola.com/shop/store/dc");
+  addIcon(38.916577,-77.023867, "Riide", "1933 9th St NW", "http://riide.com/");
+  }
+
+function loadArl() {
+  //addIcon(3sdfsdf1819, "FixeD.C.", "Arlington", "http://www.fixedc.com/");
+  addIcon(38.887242,-77.091819, "Eastern Mountain Sports", "2800 Clarendon Blvd, Arlington", "http://www.ems.com/shop/index.jsp?kw=storeDetail&f=127");
+  addIcon(38.879458,-77.107290, "Freshbikes Cycling", "3924 Wilson Blvd, Arlington", "http://www.freshbikescycling.com/");
+  addIcon(38.889471,-77.091646, "Revolution Cycles", "2731 Wilson Blvd, Arlington", "http://revolutioncycles.com/");
+  addIcon(38.850721,-77.101805, "Phoenix Community Bike Shop", "4200 S Four Mile Run Dr, Arlington", "http://phoenixbikes.org/");
+  addIcon(38.862756,-77.086795, "Papillon", "2809 Columbia Pike, Arlington", "http://www.on-the-pike.com/papillon/");
+  addIcon(38.896506,-77.096719, "Big Wheel Bikes", "3119 Lee Hwy, Arlington", "http://www.bigwheelbikes.com/");
+  addIcon(38.880965,-77.090255, "The Old Bike Shop", "2647 N Pershing Dr, Arlington", "https://www.facebook.com/pages/The-Old-Bike-Shop/358068734263449");
+  addIcon(38.882688,-77.100110, "Hybrid Pedals", "822 N Kenmore St, Arlington", "http://www.hybridpedals.com/");
+  }
+
+function loadAlex() {
+  addIcon(38.807895,-77.086720, "Bicycle Pro Shop", "3240 Duke St, Alexandria", "http://bicycleproshop.com/");
+  addIcon(38.802878,-77.039969, "Big Wheel Bikes", "2 Prince St, Alexandria", "http://www.bigwheelbikes.com/");
+  addIcon(38.829679,-77.085481, "Spokes Etc", "1545 N Quaker Ln, Alexandria", "http://spokesetc.com/");
+  addIcon(38.775499,-77.059182, "Spokes Etc", "1506 Belle View Blvd, Alexandria VA", "http://spokesetc.com/");
+  addIcon(38.825364,-77.058465, "VeloCity Bicycle Cooperative", "2111 Mt Vernon Ave, Alexandria", "http://velocitycoop.org/");
+  addIcon(38.813546,-77.040986, "Wheel Nuts", "302 Montgomery St, Alexandria", "http://wheelnutsbikeshop.com/");
+  }
+
+function loadColo() {
+  addIcon(38.918384,-104.817470, "Criterium Bicycles", "6150 Corporate Dr, Colorado Springs", "http://criterium.com/");
+  addIcon(38.933876,-104.799789, "REI", "1376 E Woodmen Rd, Colorado Springs", "http://www.rei.com/stores/colorado-springs.html");
+  addIcon(38.908350,-104.781829, "Bicycle Village", "2450 Montebello Square Dr, Colorado Springs", "http://bicyclevillage.com/");
+  addIcon(38.875165,-104.803694, "Ted's Bicycles Inc", "3016 N Hancock Ave, Colorado Springs", "http://www.tedsbicycles.com/");
+  addIcon(38.893221,-104.757775, "Performance Bicycle", "4284 N Academy Blvd, Colorado Springs", "http://www.performancebike.com/bikes/Product_10054_10551_500019_-1_600007");
+  addIcon(38.913843,-104.718872, "Ascent Cycling", "5928 Stetson Hills Blvd, Colorado Springs", "http://www.ascentcycling.net/");
+  addIcon(38.846510,-104.861673, "CS West Bikes", "2403 W Colorado Ave, Colorado Springs", "http://www.cswestcyclinghub.com/");
+  addIcon(38.827539,-104.824018, "Old Town Bike Shop", "426 S Tejon St, Colorado Springs", "http://www.oldtownbikeshop.com/");
+  addIcon(38.839942,-104.859699, "ProCycling", "600 S 21st St, Colorado Springs", "http://procyclingwarehouse.com/");
+  addIcon(38.832947,-104.837006, "Colorado Springs Bike Shop", "622 W Colorado Ave, Colorado Springs", "http://www.coloradospringsbikeshop.com/");
+  addIcon(38.837669,-104.753101, "The Colorado Cyclist", "3970 E Bijou St, Colorado Springs", "http://www.coloradocyclist.com/");
+  addIcon(39.002577,-104.798845, "Cafe Velo", "11550 Ridgeline Dr, Colorado Springs", "http://cafevelobikes.com/");
+  addIcon(38.854815,-104.793803, "The Hub ", "1519 N Union Blvd, Colorado Springs", "http://www.thehubbicycleshops.com/");
+  addIcon(38.811540,-104.825109, "Bicycle Experience", "1601 S Tejon St, Colorado Springs", "");
+  }
+
+function parameter(name) {
+  queryStr = window.location.href.substring(window.location.href.indexOf('?') + 1).split("&");
+  for (var i = 0; i < queryStr.length; i++) {
+    eqPos = queryStr[i].indexOf('=');
+    if (eqPos >= 0) {
+      if (queryStr[i].substring(0, eqPos) == name)
+        return queryStr[i].substring(eqPos + 1);
+      }
+    else if (queryStr[i] == name)
+      return "";
+    }
+  return null;
+  }
+
+function initialize() {
+  var element = document.getElementById("map_canvas");
+  var mapTypeIds = [];
+  for(var type in google.maps.MapTypeId) {
+    mapTypeIds.push(google.maps.MapTypeId[type]);
+    }
+  mapTypeIds.push("OSM");
+  map = new google.maps.Map(element, {
+    center: new google.maps.LatLng(38.949019, -77.080369),
+    zoom: 11,
+    mapTypeId: google.maps.MapTypeId.ROADMAP,
+    mapTypeControlOptions: {
+      mapTypeIds: mapTypeIds
+      }
+    });
+  if (parameter('home') != null) {
+    iconImg = 'home.png';
+    home = parameter('home');
+    latlng = home.split(",");
+    addIcon(parseFloat(latlng[0]), parseFloat(latlng[1]), "Home", home, "");
+    }
+  map.mapTypes.set("OSM", new google.maps.ImageMapType({
+    getTileUrl: function(coord, zoom) {
+      return "http://tile.openstreetmap.org/" + zoom + "/" + coord.x + "/" + coord.y + ".png";
+      },
+    tileSize: new google.maps.Size(256, 256),
+    name: "OpenStreetMap",
+    maxZoom: 18
+    }));
+  var bikeLayer = new google.maps.BicyclingLayer();
+  bikeLayer.setMap(map);
+  // build list of markers
+  var bounds = new google.maps.LatLngBounds();
+  iconImg = 'cycling.png';
+  if (parameter('arlington') != null) {
+    loadArl();
+    for (var i = 0; i < marker.length; i++)
+      bounds.extend(marker[i].getPosition());
+    map.fitBounds(bounds);
+    loadDC();
+    loadAlex();
+    }
+  else if (parameter('alexandria') != null) {
+    loadAlex();
+    for (var i = 0; i < marker.length; i++)
+      bounds.extend(marker[i].getPosition());
+    map.fitBounds(bounds);
+    loadDC();
+    loadArl();
+    }
+  else if (parameter('colo') != null) {
+    loadColo();
+    for (var i = 0; i < marker.length; i++)
+      bounds.extend(marker[i].getPosition());
+    map.fitBounds(bounds);
+    loadAlex();
+    loadDC();
+    loadArl();
+    }
+  else {
+    loadDC();
+    for (var i = 0; i < marker.length; i++)
+      bounds.extend(marker[i].getPosition());
+    if (parameter('home') != null) {
+      map.setZoom(15);
+      map.setCenter(new google.maps.LatLng(parseFloat(latlng[0]), parseFloat(latlng[1])));
+      }
+    else
+      map.fitBounds(bounds);
+    loadArl();
+    loadAlex();
+    }
+  addIcon(38.684790,-77.316789, "Village Skis & Bikes", "12383 Dillingham Sq, Woodbridge", "http://vsbsports.com/");
+  addIcon(38.296041,-77.491713, "Olde Towne Bicycles", "1907 Plank Rd, Fredericksburg", "http://oldetownebicycles.com/");
+  addIcon(38.636394,-77.295849, "Olde Towne Bicycles", "14477 Potomac Mills Rd, Woodbridge", "http://oldetownebicycles.com/");
+  addIcon(38.876067,-77.208592, "Bonzai Sports", "2822 Fallfax Dr, Falls Church", "http://tribonzai.com/");
+  addIcon(38.970293,-77.385105, "Green Lizard Cycling", "718 Lynn St, Herndon", "http://www.greenlizardcycling.com/");
+  addIcon(38.948792,-77.412812, "A-1 Cycling", "2451-13 Centreville Rd, Herndon", "http://www.a1cycling.com/");
+  addIcon(38.789876,-77.512774, "A-1 Cycling", "7705 Sudley Rd, Manassas", "http://www.a1cycling.com/");
+  addIcon(38.978565,-77.098506, "Big Wheel Bikes", "6917 Arlington Rd, Bethesda", "http://www.bigwheelbikes.com/");
+  addIcon(38.989077,-76.539078, "Bike Doctor", "160 Jennifer Rd, Annapolis", "http://bikedoctorannapolis.com/");
+  addIcon(38.916414,-77.222849, "L.L. Bean", "1961 Chain Bridge Rd, McLean", "http://www.llbean.com/llb/shop/1000001723");
+  addIcon(39.006796,-77.436944, "Eastern Mountain Sports", "22000 Dulles Retail Plaza, Rte 28 & Waxpool Rd, Dulles", "http://www.ems.com/shop/index.jsp?kw=storeDetail&f=164");
+  addIcon(38.981797,-76.540142, "Eastern Mountain Sports", "200 Harker Pl, Annapolis", "http://www.ems.com/shop/index.jsp?kw=storeDetail&f=160");
+  addIcon(39.059975,-77.471060, "Spokes Etc", "20070 Ashbrook Commons Plaza, Ashburn", "http://spokesetc.com/");
+  addIcon(38.904209,-77.262322, "Spokes Etc", "224 Maple Ave E, Vienna", "http://spokesetc.com/");
+  addIcon(38.852768,-77.321650, "Spokes Etc", "10937 Lee Hwy, Fairfax", "http://spokesetc.com/");
+  addIcon(39.072203,-77.132748, "Revolution Cycles", "1066 Rockville Pike, Rockville", "http://revolutioncycles.com/");
+  addIcon(38.453345,-77.406312, "Revolution Cycles", "2723 Jefferson Davis Hwy #111, Stafford", "http://revolutioncycles.com/");
+  addIcon(38.989152,-76.545056, "Hudson Trail Outfitters", "1079 Annapolis Mall, Annapolis", "http://www.hudsontrail.com/");
+  addIcon(39.055543,-77.117127, "Hudson Trail Outfitters", "Montrose Crossing Shopping Centern, 12085 Rockville Pike, Rockville", "http://www.hudsontrail.com/");
+  addIcon(38.865793,-77.272319, "Hudson Trail Outfitters", "9488 Fairfax Blvd, Fairfax", "http://www.hudsontrail.com/");
+  addIcon(38.980946,-77.099992, "Griffin Cycle", "4949 Bethesda Ave, Bethesda", "http://griffincycle.com/");
+  addIcon(38.985913,-77.096644, "Freshbikes Cycling", "7626 Old Georgetown Rd, Bethesda", "http://www.freshbikescycling.com/");
+  addIcon(38.994531,-77.076411, "City Bikes - Chevy Chase", "8401 Connecticut Ave, Chevy Chase", "http://citybikes.com/");
+  addIcon(38.975166,-77.011714, "Takoma Bicycle", "7030 Carroll Ave, Takoma Park", "http://www.takomabicycle.com/");
+  addIcon(38.978557,-77.005905, "The Green Commuter", "7320 Carroll Ave, Takoma Park", "http://www.thegreencommuter.net/");
+  addIcon(39.006056,-77.049367, "Bicycle Place", "9168 Brookville Rd, Silver Spring", "http://www.thebicycleplace.com/");
+  addIcon(38.961428,-76.939641, "Arrow Bicycle", "5108 Baltimore Ave, Hyattsville", "http://arrowbicycle.com/");
+  addIcon(38.981188,-76.939671, "College Park Bicycles", "4360 Knox Rd, College Park", "http://www.bike123.com/");
+  addIcon(39.359350,-77.160797, "Mt Airy Bicycles", "4540 Old National Pike, Mt Airy", "http://www.bike123.com/");
+  addIcon(38.879917,-76.858433, "Bikes & Skates", "714 Ritchie Rd, Capitol Heights", "http://bikesandskates.com/");
+  addIcon(38.888866,-76.907447, "Maryland Park Bicycle", "101 Maryland Park Dr, Capitol Heights", "https://twitter.com/#!/MDParkBicycle");
+  addIcon(39.008463,-76.781348, "A & M Cycle", "13002 9th St, Bowie", "");
+  addIcon(39.006471,-76.929640, "Proteus Bicycles", "9217 Baltimore Ave, College Park", "http://www.proteusbicycles.com/");
+  addIcon(39.008222,-77.040029, "Silver Cycles", "9332 Georgia Ave, Silver Spring", "http://silvercycles.com/");
+  addIcon(38.890457,-77.183238, "Bikenetic", "922 W Broad St, Falls Church", "http://www.bikenetic.com/");
+  addIcon(38.880034,-77.175996, "Bike Club", "438 S Washington St, Falls Church", "http://www.bikeclubva.com/");
+  addIcon(38.901283,-77.266900, "Bikes @ Vienna", "128-A Church Street NW, Vienna", "http://www.bikesatvienna.com/");
+  addIcon(38.865304,-77.273053, "Performance Bicycle - Fairfax Circle Plaza", "9504 Arlington Blvd, Fairfax", "http://www.performancebike.com/");
+  addIcon(38.851147,-77.131525, "Performance Bicycle - Bailey's Crossroad Shopping Center", "5817 Leesburg Pike, Bailey's Crossroad", "http://www.performancebike.com/");
+  addIcon(38.952050,-77.347444, "Performance Bicycle - Plaza America Shopping Center", "11634 Plaza America Dr, Reston", "http://www.performancebike.com/");
+  addIcon(38.922274,-77.236251, "Performance Bicycle - Pike 7 Plaza", "8387 Leesburg Pike, Vienna", "http://www.performancebike.com/");
+  addIcon(39.062149,-77.126954, "Performance Bicycle - Congressional Plaza", "1667 Rockville Pike, Rockville", "http://www.performancebike.com/");
+  addIcon(38.627013,-77.287256, "REI Woodbridge", "15200 Potomac Town Place, Suite 140, Woodbridge", "http://www.rei.com/stores/144");
+  addIcon(39.013865,-76.920136, "REI College Park", "Hollywood Plaza, 9801 Rhode Island Ave, College Park", "http://www.rei.com/stores/27");
+  addIcon(38.857885,-77.358390, "REI Fairfax", "11950 Grand Commons Ave, Fairfax", "http://www.rei.com/stores/84");
+  addIcon(38.849192,-77.123435, "REI Bailey's Crossroads", "3509 Carlin Springs Rd, Bailey's Crossroads", "http://www.rei.com/stores/34");
+  addIcon(39.060991,-77.124003, "REI Rockville", "1701 Rockville Pike, Rockville", "http://www.rei.com/stores/91");
+  addIcon(39.449533,-77.399198, "The Bicycle Escape", "7820-E Wormans Mill Rd, Frederick", "http://www.thebicycleescape.com/");
+  addIcon(39.199544,-76.655958, "Bike Doctor of Linthicum", "507 S Camp Meade Rd, Linthicum", "http://bikedoctorlinthicum.com/");
+  addIcon(39.146678,-77.417255, "Bob's Bikes", "19961 Fisher Ave, Poolesville", "http://www.bobsbike.com/");
+  addIcon(39.008763,-76.699294, "Family Bike Shop", "1286 Maryland Rt 3 S #13, Crofton", "http://familybikeshop.com/");
+  addIcon(39.156205,-77.211016, "Gaithersburg Bicycle", "811 Russell Ave, Gaithersburg", "http://www.gaithersburgbicycles.com/");
+  addIcon(39.093831,-76.855059, "Laurel Bicycle Center", "14805 Baltimore Ave (Rt 1), Laurel", "http://www.bicyclefun.com/");
+  addIcon(39.111507,-77.554809, "Bicycle Outfitters", "34D Catoctin Circle NE, Leesburg", "http://www.bikeoutfitters.com/");
+  addIcon(38.779497,-77.233332, "The Bike Lane", "8416 Old Keene Mill Rd, Springfield", "http://thebikelane.com/");
+  addIcon(38.957886,-77.358439, "The Bike Lane", "11943 Democarcy Dr, Reston", "http://thebikelane.com/");
+  addIcon(38.845758,-77.304023, "Oasis Bike Works", "10376 Main St, Fairfax", "http://www.oasisbikeworks.com/");
+  addIcon(39.331148,-76.628948, "Twenty20 Cycling Company", "725 W 36th St, Baltimore", "http://www.twenty20cycling.com/");
+  addIcon(39.310444,-76.619243, "Baltimore Bicycle Works", "1813 Falls Rd, Baltimore", "http://www.baltimorebicycleworks.com/");
+  addIcon(39.277398,-76.824583, "CycleSport", "9050 Baltimore National Pike, Ellicott City", "http://cyclesportec.com/");
+  addIcon(38.622923,-76.904837, "Bike Doctor of Waldorf ", "3200 Leonardtown Rd, Waldorf", "http://bikedoctorwaldorf.com/");
+  addIcon(38.332837,-76.465834, "Patuxent Adventure Center", "13860 C Solomons Island Rd, Solomons", "http://www.paxadventure.com/");
+  addIcon(39.112348,-77.565755, "Transition Triathlon", "222 S King St, Leesburg", "http://transitiontri.com");
+  addIcon(39.138341,-77.716573, "Trail's End Cycling", "201 N 23rd St, Purcellville", "http://www.trailsendcycling.com/");
+  addIcon(39.137648,-77.715424, "Velo Classique", "148A N 21st St, Purcellville", "http://www.veloclassique.com/");
+  addIcon(38.836465,-77.426793, "The Bike Shop", "13826 Braddock Rd, Centreville", "http://thecentrevillebikeshop.com/");
+  addIcon(39.289024,-77.860517, "Three Points Cycle", "120-B W Washington St, Charles Town", "http://www.threepointscycle.net/");
+  addIcon(39.313138,-77.627137, "Three Points Cycle", "5 W Potomac St, Brunswick", "http://www.threepointscycle.net/");
+  addIcon(38.830080,-77.196103, "Cycle Hope", "7229 Little River Turnpike, Annandale", "http://dcvintagecycles.com/");
+  iconViz = false;
+  iconImg = 'cupcake.png';
+  addIcon(38.804525,-77.041761, "Occasionally Cake", "207 King St, Alexandria", "http://occasionallycake.com/");
+  addIcon(38.717226,-77.131323, "Occasionally Cake", "8859 Richmond Highway, Alexandria", "http://occasionallycake.com/");
+  addIcon(38.905232,-77.066160, "Georgetown Cupcake", "3301 M St NW", "http://www.georgetowncupcake.com/");
+  addIcon(38.980771,-77.097111, "Georgetown Cupcake", "4834 Bethesda Ave, Bethesda", "http://www.georgetowncupcake.com/");
+  addIcon(38.905361,-77.059694, "Sprinkles Cupcakes", "3015 M St NW", "http://www.sprinkles.com/cupcake-bakery-locations/washington-dc-georgetown/");
+  addIcon(38.903746,-77.060311, "Baked & Wired", "1052 Thomas Jefferson St NW", "http://bakedandwired.com/");
+  addIcon(38.916890,-77.034976, "CakeLove", "1506 U St NW", "http://www.cakelove.com/");
+  addIcon(38.840812,-77.089842, "CakeLove", "4150 Campbell Ave, Arlington", "http://www.cakelove.com/");
+  addIcon(38.908772,-77.042603, "Hello Cupcake", "1361 Connecticut Ave NW", "http://www.hellocupcakeonline.com/");
+  addIcon(38.880961,-76.995165, "Hello Cupcake", "705 8th St", "http://www.hellocupcakeonline.com/");
+  addIcon(38.896344,-77.021738, "Red Velvet CupCakery", "501 7th St NW", "http://redvelvetcupcakery.com/");
+  addIcon(38.887346,-77.094463, "Red Velvet CupCakery", "3035 Clarendon Blvd, Arlington", "http://redvelvetcupcakery.com/");
+  addIcon(38.821600,-77.047629, "Buzz", "901 Slaters Ln, Alexandria", "http://buzzbakery.com/");
+  addIcon(38.880105,-77.107749, "Buzz", "818 N Quincy St, Arlington", "http://buzzbakery.com/");
+  addIcon(38.885705,-77.092685, "Bakeshop", "1025 N Fillmore St, Arlington", "http://www.bakeshopva.com/");
+  addIcon(38.897559,-77.027197, "Crumbs", "604 11th St NW", "http://www.crumbs.com/");
+  addIcon(38.901120,-77.039701, "Crumbs", "888 17th St NW", "http://www.crumbs.com/");
+  addIcon(38.904681,-77.043424, "Crumbs", "1107 19th St NW", "http://www.crumbs.com/");
+  addIcon(38.883592,-77.025052, "Crumbs", "470 L'Enfant Plaza", "http://www.crumbs.com/");
+  addIcon(38.897738,-77.006748, "Crumbs", "Union Station", "http://www.crumbs.com/");
+  addIcon(38.888327,-77.092326, "Crumbs", "2839 Clarendon Blvd, Arlington", "http://www.crumbs.com/");
+  addIcon(38.804032,-77.043622, "Lavender Moon Cupcakery", "116 S Royal St, Alexandria", "http://alexandriacupcake.com/");
+  addIcon(38.805487,-77.051112, "Alexandria Cupcake", "1022 King St, Alexandria", "http://alexandriacupcake.com/");
+  addIcon(38.857973,-77.357751, "Cupcakes Actually", "11944 Grand Commons Ave, Fairfax", "http://cupcakesactually.com/");
+  addIcon(39.024168,-77.145978, "YoCake", "Montgomery Mall, 7101 Democracy Blvd, Bethesda", "http://www.yocake.com/");
+  addIcon(38.894356,-77.274960, "Cupcakes!", "527 Maple Ave W, Vienna", "http://www.cupcakescupcakery.com/");
+  addIcon(39.083759,-77.153845, "CakeDreams", "90 W Montgomery Ave, Rockville", "www.cakedreamsmd.com/");
+  addIcon(39.368246,-76.649928, "Charm City Cupcakes", "1340 Smith Ave, Baltimore", "http://www.charmcitycupcakes.com/");
+  addIcon(38.872768,-76.972620, "Olivia's Cupcakes", "2318 Minnesota Ave SE", "http://cupcakesbyolivia.com/");
+  addIcon(38.961745,-77.084919, "Frosting", "1 Wisconsin Circle, Chevy Chase", "http://frostingacupcakery.com/");
+  addIcon(38.924607,-76.990171, "Divinely Decadent Desserts", "2701 12th St NE", "http://www.thedivinedessert.com/");
+  addIcon(38.920371,-77.042102, "Sweet Themez", "2318 18th St NW", "http://www.sweetthemez.com/");
+  addIcon(40.735852,-74.005002, "Magnolia Bakery", "401 Bleecker St, New York City", "http://www.magnoliabakery.com/");
+  addIcon(38.930420,-77.031897, "Sticky Fingers Bakery", "1370 Park Rd NW", "http://stickyfingersbakery.com/");
+  addIcon(38.883554,-76.994774, "The Sweet Lobby", "404 8th St SE", "http://sweetlobby.com/");
+  addIcon(38.933362,-77.072918, "Something Sweet", "3708 Macomb St NW", "http://www.somethingsweetdc.com/www/");
+  addIcon(38.890632,-104.763290, "Couture Cupcakes", "3609 Austin Bluffs Parkway, Colorado Springs", "http://www.springscupcakes.com/");
+  addIcon(38.854949,-104.707661, "The Cupcake Doctor", "6455 Omaha Blvd, Colorado Springs", "http://www.thecupcakedoctor.com/");
+  addIcon(38.836499,-104.824423, "Cake Crumbs", "3 E Bijou St, Colorado Springs", "http://www.cake-crumbscos.com/");
+  addIcon(38.848047,-104.863583, "Mya Bella Cupcakes", "2524 W Colorado Ave, Colorado Springs", "http://www.myabellacupcakes.com/");
+  addIcon(38.838270,-104.819423, "Cupcake Girls", "302 E Platte, Colorado Springs", "http://cupcakegirls.co/");
+  iconImg = 'futuregrocery.png';
+  addIcon(38.880126,-77.004837, "Whole Foods Market", "8th St & New Jersey Ave SE", "");
+  addIcon(38.921085,-77.032109, "Natural Market", "2400 14th St NW", "");
+  addIcon(38.919161,-77.024376, "Harris Teeter", "1747 Columbia Rd NW", "http://harristeeter.com/");
+  iconImg = 'grocery.png';
+  addIcon(38.929480,-76.975787, "Good Food Markets", "2006 Rhode Island Ave NE", "http://www.goodfoodmarkets.com/");
+  addIcon(38.921112,-77.032165, "Streets Market & Cafe", "2400 14th St NW", "http://streetsmarketcafe.com/");
+  addIcon(38.914382,-77.045070, "Glen's Garden Market", "2001 S St NW", "http://glensgardenmarket.com/");
+  addIcon(38.908634,-76.997446, "Union Market", "1309 5th St NE", "http://unionmarketdc.com/");
+  addIcon(38.914392,-77.041516, "Dupont Market", "1807 18th St NW", "");
+  addIcon(38.920745,-77.043649, "Metro K", "1864 Columbia Rd NW", "");
+  addIcon(38.866858,-76.984941, "Anacostia Warehouse Supermarket", "1918 14th St SE", "");
+  addIcon(38.906722,-77.026801, "Capitol Supermarket", "1231 11th St NW", "http://www.capitolsupermarket.com/");
+  addIcon(38.919954,-76.950130, "Costco", "2441 Market St NE", "http://www.costco.com/");
+  addIcon(38.861022,-77.057346, "Costco", "1200 S Fern St, Arlington", "http://www.costco.com/warehouse/locationtemplate.aspx?warehouse=233");
+  addIcon(38.886465,-76.996458, "Eastern Market,", "225 7th St SE", "http://www.easternmarket-dc.org/");
+  addIcon(38.904948,-77.065177, "Dean & DeLuca", "3276 M St NW", "http://www.deandeluca.com/Aboutus/?id=200");
+  addIcon(38.956264,-77.083915, "Rodman's", "5100 Wisconsin Ave NW", "http://www.rodmans.com/");
+  addIcon(38.965599,-77.076325, "Magruder's", "5626 Connecticut Ave NW", "http://www.magruders.com/");
+  addIcon(38.935204,-77.058019, "Brookville Super Market", "3427 Connecticut Ave NW", "http://www.clevelandpark.com/brookvillemarket/");
+  addIcon(38.917141,-77.035025, "Best DC Supermarket", "1507 U St NW", "http://www.bestdcsupermarket.com/");
+  addIcon(39.025110,-77.124347, "Balducci's", "10323 Old Georgetown Rd, Bethesda", "http://www.balduccis.com/");
+  addIcon(38.797920,-77.047990, "Balducci's", "600 Franklin St, Alexandria", "http://www.balduccis.com/");
+  addIcon(38.902005,-77.013904, "Field-to-City", "1818 2nd St NW", "http://www.fieldtocity.com/");
+  addIcon(38.918535,-77.032295, "Smucker Farms", "2118 14th St NW", "http://www.smuckerfarmsdc.com/");
+  addIcon(38.930963,-77.038408, "Bestworld Supermarket", "3178 Mount Pleasant St NW", "http://www.mtpmainstreet.org/business_directory/grocery/bestway_supermarket");
+  addIcon(38.995953,-77.075911, "Chevy Chase Supermarket", "8531 Connecticut Ave, Chevy Chase", "http://www.chevychasesupermarket.com/");
+  addIcon(38.977802,-77.005889, "TPSS Co-op", "201 Ethan Allen Ave, Takoma Park", "http://tpss.coop/");
+  addIcon(38.992488,-77.048677, "TPSS Co-op", "8309 Grubb Rd, Silver Spring", "http://tpss.coop/");
+  addIcon(38.938428,-76.960592, "GLUT Food Co-op", "4005 34th St, Mt Rainier", "http://www.glutfood.org/");
+  addIcon(38.975208,-77.162415, "Bethesda Co-op", "6500 Seven Locks Rd, Cabin John", "http://bethesdacoop.org/");
+  iconImg = 'freshgreens.png';
+  addIcon(38.945692,-77.094638, "Fresh & Green's", "4330 48th St NW", "http://fresh-green.com/");
+  addIcon(39.292154,-76.615526, "Fresh & Green's", "222 N Charles St, Baltimore", "http://fresh-green.com/");
+  addIcon(39.314478,-77.627685, "Fresh & Green's", "40 Souder Rd, Brunswick", "http://fresh-green.com/");
+  addIcon(39.039703,-76.479331, "Fresh & Green's", "1238 Bay Dale Dr, Arnold", "http://fresh-green.com/");
+  iconImg = 'murrys.png';
+  addIcon(38.900477,-76.997929, "Murry's", "610 H St NE", "http://www.murrys.com/");
+  addIcon(38.894010,-76.950292, "Murry's", "3932 Minnesota Ave NE", "http://www.murrys.com/");
+  addIcon(38.860847,-76.967351, "Murry's", "2800 Alabama Ave SE", "http://www.murrys.com/");
+  addIcon(38.830711,-77.007983, "Murry's", "4025 South Capitol St SE", "http://www.murrys.com/");
+  addIcon(38.932319,-77.024021, "Murry's", "3400 Georgia Ave NW", "http://www.murrys.com/");
+  iconImg = 'aldi.png';
+  addIcon(38.901302,-76.978731, "Aldi", "901 17th St NE", "http://aldi.us/");
+  addIcon(38.955796,-76.964198, "Aldi", "3025 Hamilton St, Hyattsville", "http://aldi.us/");
+  addIcon(38.986225,-76.986921, "Aldi", "7609 New Hampshire Ave, Langley Park", "http://aldi.us/");
+  addIcon(38.931948,-76.901144, "Aldi", "6524 Landover Rd, Cheverly", "http://aldi.us/");
+  addIcon(38.802811,-76.989659, "Aldi", "6301 B Livingston Rd, Oxon Hill", "http://aldi.us/");
+  addIcon(38.853879,-76.898528, "Aldi", "6301 Marlboro Pike, District Heights", "http://aldi.us/");
+  addIcon(38.964581,-76.846622, "Aldi", "9343 Annapolis Rd, Lanham", "http://aldi.us/");
+  addIcon(38.734088,-77.099724, "Aldi", "8256 Richmond Highway, Alexandria", "http://aldi.us/");
+  iconImg = 'safeway.png';
+  addIcon(38.911990,-77.038730, "Safeway", "1701 Corcoran NW", "http://local.safeway.com/dc/washington-923.html");
+  addIcon(38.924094,-77.041005, "Safeway", "1747 Columbia Rd NW", "http://local.safeway.com/dc/washington-4202.html");
+  addIcon(38.893475,-76.947760, "Safeway", "322 40th St NE", "http://local.safeway.com/dc/washington-1177.html");
+  addIcon(38.969453,-77.026596, "Safeway", "6500 Piney Branch Rd NW", "http://local.safeway.com/dc/washington-1276.html");
+  addIcon(38.953087,-77.082453, "Safeway", "4203 Davenport St NW", "http://local.safeway.com/dc/washington-1395.html");
+  addIcon(38.859255,-76.966241, "Safeway", "Good Hope Marketplace, 2845 Alabama Ave SE", "http://local.safeway.com/dc/washington-1445.html");
+  addIcon(38.903545,-77.018737, "Safeway", "490 L St NW", "http://local.safeway.com/dc/washington-2737.html");
+  addIcon(38.877428,-77.017338, "Safeway", "1100 4th St SW", "http://local.safeway.com/dc/washington-2892.html");
+  addIcon(38.915926,-77.067660, "Safeway", "1855 Wisconsin Ave NW", "http://local.safeway.com/dc/washington-2912.html");
+  addIcon(38.883538,-76.986443, "Safeway", "415 14th St SE", "http://local.safeway.com/dc/washington-4205.html");
+  addIcon(38.900652,-76.979894, "Safeway", "1601 Maryland Ave NE", "http://local.safeway.com/dc/washington-4270.html");
+  addIcon(38.964502,-77.074972, "Safeway", "5545 Connecticut Ave NW", "http://local.safeway.com/dc/washington-4832.html");
+  addIcon(38.938328,-77.025346, "Safeway", "3830 Georgia Ave NW", "http://local.safeway.com/dc/washington-4873.html");
+  addIcon(38.917462,-77.095883, "Safeway", "4865 Macarthur Blvd NW", "http://local.safeway.com/dc/washington-693.html");
+  addIcon(38.894937,-77.074918, "Safeway", "1525 Wilson Blvd, Arlington", "http://local.safeway.com/va/arlington-1048.html");
+  addIcon(38.877942,-77.123386, "Safeway", "5101 Wilson Blvd, Arlington", "http://local.safeway.com/va/arlington-1358.html");
+  addIcon(38.896719,-77.105775, "Safeway", "3713 Lee Hwy, Arlington", "http://local.safeway.com/va/arlington-4007.html");
+  addIcon(38.896911,-77.139335, "Safeway", "2500 N Harrison St, Arlington", "http://local.safeway.com/va/arlington-764.html");
+  addIcon(38.953986,-76.959531, "Safeway", "3511 Hamilton St, Hyattsville", "http://www.safeway.com/");
+  addIcon(38.949952,-77.119148, "Safeway", "4701 Sangamore Rd, Bethesda", "http://www.safeway.com/");
+  addIcon(38.993405,-77.024655, "Safeway", "909 Thayer Ave, Silver Spring", "http://www.safeway.com/");
+  addIcon(38.977489,-77.099160, "Safeway", "5000 Bradley Blvd, Bethesda", "http://www.safeway.com/");
+  addIcon(38.986221,-77.096204, "Safeway", "7625 Old Georgetown Rd, Bethesda", "http://www.safeway.com/");
+  addIcon(38.920329,-77.150139, "Safeway", "6244 Old Dominion Dr, Mclean", "http://www.safeway.com/");
+  addIcon(38.869142,-77.144989, "Safeway", "6118 Arlington Blvd, Falls Church", "http://www.safeway.com/");
+  addIcon(38.853144,-77.129949, "Safeway", "5821 Crossroads Ctr Way, Falls Church", "http://www.safeway.com/");
+  addIcon(38.827957,-77.089832, "Safeway", "3526 King St, Alexandria", "http://www.safeway.com/");
+  iconImg = 'yesmarket.png';
+  addIcon(38.883350,-76.994698, "Yes! Organic Market", "410 8th St SE", "http://www.yesorganicmarket.com/");
+  addIcon(38.918543,-77.031693, "Yes! Organic Market", "2123 14th St NW", "http://www.yesorganicmarket.com/");
+  addIcon(38.921765,-77.043644, "Yes! Organic Market", "1825 Columbia Rd NW", "http://www.yesorganicmarket.com/");
+  addIcon(38.936847,-76.990559, "Yes! Organic Market", "3809 12th St NE", "http://www.yesorganicmarket.com/");
+  addIcon(38.883534,-76.994873, "Yes! Organic Market", "410 8th St SE", "http://www.yesorganicmarket.com/");
+  addIcon(38.935102,-77.057978, "Yes! Organic Market", "3425 Connecticut Ave NW", "http://www.yesorganicmarket.com/");
+  addIcon(38.941078,-77.025513, "Yes! Organic Market", "4100 Georgia Ave NW", "http://www.yesorganicmarket.com/");
+  addIcon(38.954303,-76.940435, "Yes! Organic Market", "5331 Baltimore Ave, Hyattsville", "http://www.yesorganicmarket.com/");
+  iconImg = 'giant.png';
+  addIcon(38.908884,-77.022296, "Giant", "7th & O NW", "http://www.giantfood.com/");
+  addIcon(38.900485,-77.001629, "Giant - H St", "300 H St NW", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=2381");
+  addIcon(38.930946,-77.031532, "Giant - Tivoli Square", "1345 Park Rd NW", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0378");
+  addIcon(38.919422,-76.992220, "Giant - Brentwood", "1050 Brentwood Rd NW", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0375");
+  addIcon(38.845022,-76.981128, "Giant - Anacostia", "1535 Alabama Ave SE", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0384");
+  addIcon(38.944578,-77.063213, "Giant - Van Ness", "4303 Connecticut Ave NW", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0383");
+  addIcon(38.934092,-77.073051, "Giant - Cathedral Commons", "3336 Wisconsin Ave", "http://giantfood.com/store/fb1504e0-6690-11e4-a206-0050569503c2/");
+  addIcon(38.896790,-77.095974, "Giant - Lyon Village", "3115 Lee Hwy, Arlington", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0771");
+  addIcon(38.885797,-77.103226, "Giant - Virginia Square", "3450 Washington Blvd, Arlington", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0743");
+  addIcon(38.817860,-77.002984, "Giant - Eastover", "20 Audrey Ln, Oxon Hill", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0341");
+  addIcon(38.845657,-77.068686, "Giant - Shirley Park", "2901-11 S Glebe Rd, Arlington", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0748");
+  addIcon(38.863733,-77.084263, "Giant - Penrose Square", "2501 9th Rd S, Arlington", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0774");
+  addIcon(38.962395,-77.084596, "Giant - Wisconsin Circle", "5463 Wisconsin Ave, Chevy Chase", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0312");
+  addIcon(38.981488,-77.098716, "Giant - Bethesda Row West", "7142 Arlington Rd, Bethesda", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0327");
+  addIcon(38.963805,-77.107717, "Giant - Westwood Shopping Center", "5400 Westbard Ave, Bethesda", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0357");
+  addIcon(39.026131,-77.127340, "Giant - Georgetown Square", "10400 Old Georgetown Rd, Bethesda", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0132");
+  addIcon(38.966016,-76.958587, "Giant - Hyattsville Station", "3521 East-West Highway, Hyattsville", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0334");
+  addIcon(38.950277,-76.968022, "Giant - Queenstown", "3104 Queens Chapel Rd, Hyattsville", "http://www.giantfood.com/our_stores/locator/store_details.htm?storeNumber=0333");
+  iconImg = 'wfm.png';
+  addIcon(38.909435,-77.033433, "Whole Foods Market - P Street", "1440 P St NW", "http://wholefoodsmarket.com/stores/pstreet/");
+  addIcon(38.920951,-77.071684, "Whole Foods Market - Georgetown", "2323 Wisconsin Ave NW", "http://wholefoodsmarket.com/stores/georgetown/");
+  addIcon(38.948873,-77.079416, "Whole Foods Market - Tenleytown", "4530 40th St NW", "http://wholefoodsmarket.com/stores/tenley/");
+  addIcon(38.900878,-77.049062, "Whole Foods Market - Foggy Bottom", "2201 I St NW", "http://wholefoodsmarket.com/stores/foggybottom/");
+  addIcon(38.961378,-77.087129, "Whole Foods Market - Friendship Heights", "4420 Willard Ave, Chevy Chase", "http://wholefoodsmarket.com/stores/friendshipheights/");
+  addIcon(38.889012,-77.091232, "Whole Foods Market - Arlington", "2700 Wilson Blvd, Arlington", "http://wholefoodsmarket.com/stores/arlington/");
+  addIcon(38.966154,-77.104208, "Whole Foods Market - Bethesda", "5269 River Rd, Bethesda", "http://wholefoodsmarket.com/stores/bethesda/");
+  addIcon(38.996295,-77.024128, "Whole Foods Market - Silver Spring", "833 Wayne Ave, Silver Spring", "http://wholefoodsmarket.com/stores/silverspring/");
+  addIcon(38.804183,-77.060118, "Whole Foods Market - Old Town", "1700 Duke St, Alexandria", "http://wholefoodsmarket.com/stores/alexandria/");
+  addIcon(39.042986,-77.112912, "Whole Foods Market - Rockville", "11355 Woodglen Dr, Rockville", "http://wholefoodsmarket.com/stores/rockville/");
+  addIcon(38.942087,-104.798884, "Whole Foods Market - Pikes Peak", "7635 N Academy Blvd, Colorado Springs", "http://wholefoodsmarket.com/stores/ppk");
+  addIcon(38.878907,-104.717860, "Whole Foods Market - First & Main", "3180 New Center Point, Colorado Springs", "http://wholefoodsmarket.com/stores/ncp");
+  addIcon(39.545419,-104.943209, "Whole Foods Market - Highlands Ranch", "9366 S Colorado Blvd, Highlands Ranch", "http://wholefoodsmarket.com/stores/highlandsranch");
+  addIcon(39.592197,-104.961619, "Whole Foods Market - SouthGlenn", "6853 S York St, Centennial", "http://wholefoodsmarket.com/stores/southglenn");
+  iconImg = 'harristeeter.png';
+  addIcon(38.921882,-77.038398, "Harris Teeter - Citadel", "1631 Kalorama Rd NW", "http://locations.harristeeter.com/DC/WASHINGTON/231/");
+  addIcon(38.905841,-77.005653, "Harris Teeter - Constitution Square", "1201 1st St NE", "locations.harristeeter.com/DC/WASHINGTON/352/");
+  addIcon(38.880251,-76.986524, "Harris Teeter - Jenkins Row", "1350 Potomac Ave SE", "http://locations.harristeeter.com/DC/WASHINGTON/282/");
+  addIcon(38.875860,-77.000311, "Harris Teeter", "401 M St SE", "http://harristeeter.com/");
+  addIcon(38.841391,-77.089997, "Harris Teeter - Shirlington", "4250 Campbell Ave, Arlington", "http://locations.harristeeter.com/VA/ARLINGTON/235/");
+  addIcon(38.865137,-77.061829, "Harris Teeter - Pentagon Row", "900 Army Navy Dr, Arlington", "http://locations.harristeeter.com/VA/ARLINGTON/83/");
+  addIcon(38.896874,-77.137709, "Harris Teeter - Lee Harrison Shopping Center", "2425 N Harrison St, Arlington", "http://locations.harristeeter.com/VA/ARLINGTON/23/");
+  addIcon(38.876869,-77.109937, "Harris Teeter - Hyde Park Plaza", "600 North Glebe Rd, Arlington", "http://locations.harristeeter.com/VA/ARLINGTON/86/");
+  addIcon(38.847082,-77.051471, "Harris Teeter - Potomac Yard", "3600 S Glebe Rd, Arlington", "http://locations.harristeeter.com/VA/ARLINGTON/262/");
+  addIcon(38.812865,-77.112346, "Harris Teeter - Shops at Foxchase", "4641 Duke St, Alexandria", "http://locations.harristeeter.com/VA/ALEXANDRIA/133/");
+  iconImg = 'traderjoes.png';
+  addIcon(38.916412,-77.032192, "Trader Joe\'s", "1914 14th St NW", "http://www.traderjoes.com/");
+  addIcon(38.904209,-77.053134, "Trader Joe\'s", "1101 25th St NW", "http://www.traderjoes.com/");
+  addIcon(38.886479,-77.094705, "Trader Joe\'s", "1109 N Highland St, Arlington", "http://www.traderjoes.com/");
+  addIcon(38.978352,-77.090540, "Trader Joe\'s", "6831 Wisconsin Ave, Bethesda", "http://www.traderjoes.com/");
+  addIcon(38.850892,-77.132725, "Trader Joe\'s", "5847 Leesburg Pike, Bailey's Crossroads", "http://www.traderjoes.com/");
+  addIcon(38.810984,-77.044878, "Trader Joe\'s", "612 N Saint Asaph St, Alexandria", "http://www.traderjoes.com/");
+  addIcon(39.031419,-77.003542, "Trader Joe\'s", "10741 Columbia Pike, Silver Spring", "http://www.traderjoes.com/");
+  addIcon(38.904330,-77.204083, "Trader Joe\'s", "7514 Leesburg Turnpike, Falls Church", "http://www.traderjoes.com/");
+  addIcon(39.057251,-77.123617, "Trader Joe\'s", "12268-H Rockville Pike, Rockville", "http://www.traderjoes.com/");
+  iconImg = 'target.png';
+  addIcon(38.929761,-77.033045, "Target", "3100 14th St NW", "http://www.target.com/store-locator/store-details/storeNumber=2259");
+  addIcon(38.968185,-76.957558, "Target", "3500 East West Hwy, Hyattsville", "http://www.target.com/store-locator/store-details/storeNumber=1890");
+  addIcon(38.834292,-77.049762, "Target", "3101 Jefferson Davis Hwy, Alexandria", "http://www.target.com/store-locator/store-details/storeNumber=1076");
+  addIcon(38.868499,-77.142481, "Target", "6100 Arlington Blvd, Falls Church", "http://www.target.com/store-locator/store-details/storeNumber=1431");
+  iconImg = 'wegmans.png';
+  addIcon(38.921540,-76.850570, "Wegman's", "Woodmore Towne Centre, 9001 Mchugh Dr, Lanham", "http://www.wegmans.com/");
+  addIcon(38.851105,-77.347818, "Wegman's", "11620 Monument Dr, Fairfax", "http://www.wegmans.com/");
+  addIcon(39.006929,-77.440635, "Wegman's", "45131 Columbia Place, Sterling", "http://www.wegmans.com/");
+  addIcon(38.631187,-77.288908, "Wegman's", "14801 Dining Way, Woodbridge", "http://www.wegmans.com/");
+  iconImg = 'shoppersfood.png';
+  addIcon(38.951224,-76.968994, "Shoppers Food", "2441 Chillum Rd, Hyattsville", "http://www.shoppersfood.com/");
+  addIcon(38.973506,-76.994208, "Shoppers Food", "6881 New Hampshire Ave, Takoma Park", "http://www.shoppersfood.com/");
+  addIcon(38.935044,-76.950014, "Shoppers Food", "3831 Bladensburg Rd, Colmar Manor", "http://www.shoppersfood.com/");
+  addIcon(38.839181,-77.050694, "Shoppers Food - Potomac Yard", "3801 Jefferson Davis Hwy, Alexandria,", "http://www.shoppersfood.com/");
+  addIcon(38.873102,-76.930820, "Shoppers Food - Coral Hills", "4801 Marlboro Pike, Capitol Heights", "http://www.shoppersfood.com/");
+  addIcon(38.805270,-76.991397, "Shoppers Food", "6111 Livingston Rd, Oxon Hill", "http://www.shoppersfood.com/");
+  iconImg = 'moms.png';
+  addIcon(38.915654,-76.983617, "Mom's Organic Market", "1501 New York Ave NE", "http://www.momsorganicmarket.com/");
+  addIcon(39.047711,-77.101430, "Mom's Organic Market", "11711 Parklawn Dr, Rockville", "http://www.momsorganicmarket.com/");
+  addIcon(38.841045,-77.062705, "Mom's Organic Market", "3831 Mount Vernon Ave, Alexandria", "http://www.momsorganicmarket.com/");
+  addIcon(39.014749,-76.920006, "Mom's Organic Market", "9827 Rhode Island Ave, College Park", "http://www.momsorganicmarket.com/");
+  addIcon(38.983040,-76.729880, "Mom's Organic Market", "6824 Race Track Rd, Bowie", "http://www.momsorganicmarket.com/");
+  addIcon(38.967868,-77.376239, "Mom's Organic Market", "424 Elden St, Herndon", "http://www.momsorganicmarket.com/");
+  iconImg = 'theater.png';
+  addIcon(38.921682,-77.042572, "District of Columbia Arts Center", "2438 18th St NW", "http://www.dcartscenter.org/");
+  addIcon(38.909895,-77.031682, "Studio Theatre", "1501 14th St NW", "http://www.studiotheatre.org/");
+  addIcon(38.877169,-77.020449, "Arena Stage", "1101 6th St SW", "http://www.arenastage.org/");
+  addIcon(38.915196,-77.031693, "Source Theatre", "1835 14th St NW", "http://www.sourcedc.org/");
+  addIcon(38.898097,-77.025062, "FlashPoint", "916 G St NW", "http://flashpointdc.org/");
+  addIcon(38.895041,-77.021565, "Woolly Mammoth", "641 D St NW", "http://woollymammoth.net/");
+  addIcon(38.895726,-77.022230, "Shakespeare Theatre - Lansburgh Theatre", "450 7th St NW", "http://www.shakespearetheatre.org/");
+  addIcon(38.897154,-77.020438, "Shakespeare Theatre - Sidney Harmon Hall", "610 F St NW", "http://www.shakespearetheatre.org/");
+  addIcon(38.910308,-77.039975, "Keegan Theatre (Church Street Theatre)", "1742 Church St NW", "http://keegantheatre.com/");
+  addIcon(38.895793,-77.055491, "Kennedy Center", "2700 F St NW", "http://www.kennedy-center.org/");
+  addIcon(38.900026,-76.986192, "H Street Playhouse", "1365 H St NE", "http://www.hstreetplayhouse.com/");
+  addIcon(38.896477,-77.030600, "National Theatre", "1321 Pennsylvania Ave NW", "http://www.nationaltheatre.org/");
+  addIcon(38.896486,-77.029375, "Warner Theatre", "513 13th St NW", "http://warnertheatre.org/");
+  addIcon(38.896661,-77.025855, "Ford's Theatre", "511 10th St NW", "http://www.fordstheatre.org/");
+  addIcon(38.840847,-77.090159, "Signature Theatre", "4200 Campbell Ave, Arlington", "http://www.signature-theatre.org/");
+  addIcon(38.985083,-77.092508, "Round House Theatre", "4545 East-West Hwy, Bethesda", "http://www.roundhousetheatre.org/");
+  addIcon(38.843501,-76.975433, "THEARC", "1901 Mississippi Ave SE", "http://www.thearcdc.org/");
+  iconImg = 'bowling.png';
+  addIcon(38.904756,-77.063094, "Pinstripes", "1064 Wisconsin Ave NW", "http://pinstripes.com/");
+  addIcon(38.899099,-77.020953, "Lucky Strikes Lanes", "701 7th St NW", "http://www.bowlluckystrike.com/locations/washington-dc/washington-dc/");
+  addIcon(38.963234,-77.105978, "Bowlmor Bethesda", "5353 Westbard Ave, Bethesda", "http://www.bowlmor.com/bethesda/");
+  addIcon(38.782541,-77.080434, "AMF", "6228a N Kings Hwy, Alexandria", "http://www.amf.com/alexandrialanes");
+  addIcon(38.803112,-77.160634, "Bowl America - Shirley", "6450 Edsall Rd, Alexandria", "http://www.bowl-america.com/");
+  addIcon(38.810486,-77.121602, "U.S. Bowling", "100 S Pickett St, Alexandria", "http://bowlalexandria.com/");
+  addIcon(39.040736,-76.989581, "White Oak Duckpin Bowling Lanes", "11207 New Hampshire Ave, Silver Spring", "http://www.whiteoaklanes.com/");
+  addIcon(39.000230,-76.930514, "AMF College Park Lanes", "9021 Baltimore Blvd, College Park", "http://www.amf.com/collegeparklanes");
+  addIcon(38.871657,-104.810908, "Peak Bowl", "2861 N Prospect St, Colorado Springs", "http://www.peakbowl.com/");
+  addIcon(38.836064,-104.859788, "Bear Creek Lanes", "1232 S 21st St, Colorado Springs", "http://www.bearcreeklanesco.com/");
+  addIcon(38.881345,-104.759710, "King Pin Lanes", "3410 N Academy Blvd, Colorado Springs", "");
+  addIcon(38.888294,-104.755247, "Harmony Bowl", "3845 N Academy Blvd, Colorado Springs", "http://www.bowlatharmony.com/");
+  addIcon(38.846359,-104.775671, "Brunswick Zone Circle", "999 N Circle Dr, Colorado Springs", "http://www.bowlbrunswick.com/about-us/220/1");
+  iconImg = 'airport.png';
+  addIcon(38.850671,-77.039666, "Ronald Reagan Washington National Airport (DCA)", "1 Aviation Circle, Arlington", "http://www.metwashairports.com/reagan/reagan.htm");
+  addIcon(39.183437,-76.670351, "Baltimore Washington International Airport (BWI)", "7062 Elm Rd, Baltimore", "http://www.bwiairport.com/");
+  addIcon(38.952434,-77.447909, "Dulles International Airport (IAD)", "1 Saarinen Cir, Sterling", "http://www.mwaa.com/dulles/dulles.htm");
+  iconImg = 'train.png';
+  addIcon(38.898014,-77.006051, "Amtrak - Union Station", "50 Massachusetts Ave NE", "http://www.amtrak.com/servlet/ContentServer?pagename=am/am2Station/Station_Page&code=WAS");
+  addIcon(38.948208,-76.871564, "Amtrak - New Carrollton", "4300 Garden City Dr, New Carrollton", "http://www.amtrak.com/servlet/ContentServer?pagename=am/am2Station/Station_Page&code=NCR");
+  addIcon(38.806411,-77.062275, "Amtrak - Alexandria", "110 Callahan Dr, Alexandria", "http://www.amtrak.com/servlet/ContentServer?pagename=am/am2Station/Station_Page&code=ALX");
+  addIcon(38.885544,-77.021011, "Virginia Railway Express (VRE) - L'Enfant", "6th & 7th St at Virginia Ave SW", "http://www.vre.org/service/stations/LEF.htm");
+  iconImg = 'cabi.png';
+  stopName = ["20th & Bell St","18th & Eads St.","20th & Crystal Dr","15th & Crystal Dr","Aurora Hills Community Ctr/18th & Hayes St","Pentagon City Metro / 12th & S Hayes St","S Joyce & Army Navy Dr","Crystal City Metro / 18th & Bell St","12th & Army Navy Dr","27th & Crystal Dr","S Glebe & Potomac Ave","23rd & Crystal Dr","26th & S Clark St","19th St & Pennsylvania Ave NW","14th & V St NW","11th & Kenyon St NW","16th & Harvard St NW","Adams Mill & Columbia Rd NW","14th & Harvard St NW","Calvert & Biltmore St NW","Lamont & Mt Pleasant NW","4th & M St SW","15th & P St NW","14th & R St NW","14th & Rhode Island Ave NW","20th & E St NW","21st & I St NW","Georgia & New Hampshire Ave NW","14th St & Spring Rd NW","John McCormack Dr & Michigan Ave NE","5th & K St NW","19th & East Capitol St SE","Park Rd & Holmead Pl NW","Good Hope & Naylor Rd SE","Connecticut Ave & Newark St NW / Cleveland Park","Randle Circle & Minnesota Ave SE","Minnesota Ave Metro/DOES","Nannie Helen Burroughs & Minnesota Ave NE","Anacostia Metro","Good Hope Rd & MLK Ave SE","19th & E Street NW","4th & W St NE","10th & U St NW","Georgia Ave and Fairmont St NW","1st & N St  SE","20th St & Florida Ave NW","7th & T St NW","22nd & Eads St","M St & New Jersey Ave SE","Massachusetts Ave & Dupont Circle NW","1st & M St NE","21st & M St NW","17th & K St NW","3rd & H St NW","3rd & D St SE","Potomac & Pennsylvania Ave SE","14th & D St SE","17th & Corcoran St NW","Van Ness Metro / UDC","Florida Ave & R St NW","8th & Eye St SE / Barracks Row","Ward Circle / American University","Idaho Ave & Newark St NW [on 2nd District patio]","14th St Heights / 14th & Crittenden St NW","Anacostia Library","Pennsylvania & Minnesota Ave SE","Eastern Market / 7th & North Carolina Ave SE","14th St & New York Ave NW","Benning Branch Library","USDA / 12th & Independence Ave SW","Georgetown Harbor / 30th St NW","12th & Newton St NE","US Dept of State / Virginia Ave & 21st St NW","L'Enfant Plaza / 7th & C St SW","10th St & Constitution Ave NW","Kennedy Center","Eastern Market Metro / Pennsylvania Ave & 7th St SE","18th & M St NW","Tenleytown / Wisconsin Ave & Albemarle St NW","13th & H St NE","5th & F St NW","New York Ave & 15th St NW","Convention Center / 7th & M St NW","Harvard St & Adams Mill Rd NW","19th & L St NW","C & O Canal & Wisconsin Ave NW","6th & Water St SW / SW Waterfront","D St & Maryland Ave NE","34th St & Wisconsin Ave NW","13th St & New York Ave NW","8th & H St NW","10th & Monroe St NE","Eckington Pl & Q St NE","6th & H St NE","3rd & H St NE","Bladensburg Rd & Benning Rd NE","4th & East Capitol St NE","Lincoln Park / 13th & East Capitol St NE ","Branch & Pennsylvania Ave SE","13th & D St NE","New Hampshire Ave & T St NW","Metro Center / 12th & G St NW","14th & D St NW / Ronald Reagan Building","7th & F St NW / National Portrait Gallery","17th & K St NW / Farragut Square","20th & O St NW / Dupont South","4th & D St NW / Judiciary Square","19th St & Constitution Ave NW","37th & O St NW / Georgetown University","11th & H St NE","25th St & Pennsylvania Ave NW","Columbus Circle / Union Station","North Capitol St & F St NW","11th & M St NW","36th & Calvert St NW / Glover Park","14th & G St NW","Potomac Ave & 35th St S","Ohio Dr & West Basin Dr SW / MLK & FDR Memorials","11th & F St NW","23rd & E St NW ","Lynn & 19th St North","Rosslyn Metro / Wilson Blvd & Ft Myer Dr","Clarendon Blvd & Pierce St","Wilson Blvd & N Uhle St","N Rhodes & 16th St N","Fairfax Village","21st St & Constitution Ave NW","Wilson Blvd & N Edgewood St","Columbia Rd & Belmont St NW","17th & Rhode Island Ave NW","Thomas Circle","Wilson Blvd & Franklin Rd","Clarendon Blvd & N Fillmore St","Clarendon Metro / Wilson Blvd & N Highland St","18th St & Pennsylvania Ave NW","Maryland & Independence Ave SW","4th & E St SW","3rd & G St SE","7th & R St NW / Shaw Library","9th & Upshur St NW","1st & Rhode Island Ave NW","Columbia Rd & Georgia Ave NW","California St & Florida Ave NW","Benning Rd & East Capitol St NE / Benning Rd Metro","3000 Connecticut Ave NW / National Zoo","Anacostia Ave & Benning Rd NE / River Terrace ","M St & Pennsylvania Ave NW","15th St & Massachusetts Ave SE","Congress Heights Metro","N Quincy St & Glebe Rd","Wilson Blvd & N Oakland St","N Veitch  & 20th St N","11th & K St NW","Fairfax Dr & Wilson Blvd","Key Blvd & N Quinn St","1st & K St SE","39th & Calvert St NW / Stoddert","1st & Washington Hospital Center NW","Virginia Square Metro / N Monroe St & 9th St N","Central Library / N Quincy St & 10th St N","Washington Blvd & 10th St N","Jefferson Dr & 14th St SW","Smithsonian / Jefferson Dr & 12th St SW","George Mason Dr & Wilson Blvd","6th St & Indiana Ave NW","N Veitch & Key Blvd","N Adams St & Lee Hwy","15th & N Scott St","Washington Blvd & 7th St N","Ballston Metro / N Stuart & 9th St N","N Randolph St & Fairfax Dr","Jefferson Memorial","Good Hope Rd & 14th St SE","Glebe Rd & 11th St N","N Quincy St & Wilson Blvd","Fairfax Dr & Kenmore St","Gallaudet / 8th St & Florida Ave NE","20th & L St NW","12th & L St NW","21st St & Pennsylvania Ave NW","19th & K St NW","Prince St & Union St","Market Square / King St & Royal St","Saint Asaph St & Pendleton  St","King St & Patrick St","15th & K St NW","Commerce St & Fayette St","Henry St & Pendleton St","Braddock Rd Metro","King St Metro","24th & N St NW","10th & E St NW","22nd & I St NW / Foggy Bottom","Utah St & 11th St N ","Barton St & 10th St N","Arlington Blvd & N Queen St","Lincoln Memorial","20th St & Virginia Ave NW","5th St & Massachusetts Ave NW","39th & Veazey St NW","Fessenden St & Wisconsin Ave NW","M St & Delaware Ave NE","Columbia Pike & S Courthouse Rd","Walter Reed Community Center / Walter Reed Dr & 16th St S","28th St S & S Meade St","18th St & Wyoming Ave NW","5th & Kennedy St NW","Georgia Ave & Emerson St NW","14th & Upshur St NW","14th St & Colorado Ave NW","S Troy St & 26th St S","S Four Mile Run Dr & S Shirlington Rd","S Oakland St & Columbia Pike","S Abingdon St & 36th St S","S Arlington Mill Dr & Campbell Ave","S Kenmore & 24th St S","13th St & Eastern Ave","Wisconsin Ave & O St NW","S George Mason Dr & 13th St S","Connecticut & Nebraska Ave NW","17th St & Massachusetts Ave NW","15th & Euclid St  NW","8th & East Capitol St NE","New Jersey Ave & R St NW","15th & East Capitol St NE","8th & F St NE","18th St & Rhode Island Ave NE","15th & F St NE","12th & Irving St NE","34th St & Minnesota Ave SE","Alabama & MLK Ave SE","Pleasant St & MLK Ave SE","Neal St & Trinidad Ave NE","12th & U St NW","S George Mason Dr & Four Mile Run","S Stafford & 34th St S","N Pershing Dr & Wayne St","Columbia Pike & S Orme St","3rd St & Pennsylvania Ave SE","8th & D St NW","3rd & Elm St NW","Rhode Island Ave & V St NE","Constitution Ave & 2nd St NW/DOL","Washington & Independence Ave SW/HHS","Independence Ave & L'Enfant Plaza SW/DOE","Hamlin & 7th St NE","Columbia Pike & S Walter Reed Dr","Columbia Pike & S Dinwiddie St / Arlington Mill Community Center","Pershing & N George Mason Dr","Fenton St & New York Ave ","Bethesda Ave & Arlington Rd","Montgomery Ave & Waverly St ","Fallsgrove Blvd & Fallsgrove Dr","Traville Gateway Dr & Gudelsky Dr","Norfolk Ave & Fairmont St","E Montgomery Ave & Maryland Ave","Cordell & Norfolk Ave","Frederick Ave & Horners Ln","Philadelphia & Maple Ave","Maple & Ritchie Ave","Silver Spring Metro/Colesville Rd & Wayne Ave","Montgomery & East Ln","Friendship Hts Metro/Wisconsin Ave & Wisconsin Cir","14th & Belmont St NW","3rd & Tingey St SE","10th & Florida Ave NW","Potomac Ave & 8th St SE","Crabbs Branch Way & Redland Rd","Fallsgrove Dr & W Montgomery Ave","Monroe St & Monroe Pl","Needwood Rd & Eagles Head Ct","East West Hwy & Blair Mill Rd","Crabbs Branch Way & Calhoun Pl","47th & Elm St","Garland Ave & Walden Rd","Montgomery College/W Campus Dr & Mannakee St","Fenton St & Gist Ave","Carroll & Westmoreland Ave","Carroll & Ethan Allen Ave","Battery Ln & Trolley Trail","Norfolk & Rugby Ave","Offutt Ln & Chevy Chase Dr","Broschart & Blackwell Rd","Taft St & E Gude Dr","Fleet St & Ritchie Pkwy","Piccard & W Gude Dr","Ripley & Bonifant St","Georgia Ave & Spring St","Fenton St & Ellsworth Dr ","King Farm Blvd & Pleasant Dr","King Farm Blvd & Piccard Dr","Calvert St & Woodley Pl NW","New Jersey Ave & N St NW/Dunbar HS","Nannie Helen Burroughs Ave & 49th St NE","Deanwood Rec Center","Hains Point/Buckeye & Ohio Dr SW","Arlington Blvd & Fillmore St","Long Bridge Park/Long Bridge Dr & 6th St S","Old Georgetown Rd & Southwick St","Friendship Blvd & Willard Ave","North Capitol St & G Pl NE","31st & Woodrow St S","Washington Blvd & Walter Reed Dr ","TJ Cmty Ctr / 2nd St & S Old Glebe Rd","Connecticut Ave & Tilden St NW","Medical Center Dr & Key West Ave","Shady Grove Hospital","Veterans Pl & Pershing Dr ","Rockville Metro East","1st & H St NW","Fort Totten Metro","Takoma Metro","Rhode Island Ave Metro","Rolfe St & 9th St S","Shirlington Transit Center / S Quincy & Randolph St","Shady Grove Metro West","River Rd & Landy Ln","Rockville Metro West","Bethesda Metro","Iwo Jima Memorial/N Meade & 14th St N","34th & Water St NW","Duke St & John Carlyle St","Lee Hwy & N Cleveland St","Arlington Blvd & S George Mason Dr/NFATC","MLK Library/9th & G St NW","Lee Hwy & N Scott St","New Hampshire Ave & 24th St NW","Eisenhower Ave & Mill Race Ln","Potomac Greens Dr & Slaters Ln","Ballenger Ave & Dulaney St","Mount Vernon Ave & E Nelson Ave","Mount Vernon Ave & E Del Ray Ave","Monroe Ave & Leslie Ave","Mount Vernon Ave & Kennedy St","Court House Metro / 15th & N Uhle St ","Washington Adventist U / Flower Ave & Division St","6th & S Ball St","McKinley St & Connecticut Ave NW","15th & L St NW","17th & G St NW"];
+  stopLat = [38.8561,38.85725,38.8564,38.86017,38.857866,38.862303,38.8637,38.8573,38.8629,38.848441,38.8426,38.8533,38.850688,38.9003,38.9176,38.929464,38.926088,38.922925,38.9268,38.923203,38.9319,38.8767,38.90985,38.912682,38.9086,38.8963,38.9008,38.936043,38.9375,38.9346,38.90304,38.8896,38.9308,38.8601,38.934267,38.878,38.897063,38.901385,38.862669,38.867373,38.8952,38.919077,38.9172,38.9249,38.8743,38.9154,38.9155,38.854132,38.8763,38.9101,38.9057,38.90534,38.90276,38.899408,38.8851,38.8803,38.884,38.9121,38.944551,38.9126,38.8792,38.938736,38.934751,38.947774,38.865784,38.873057,38.886952,38.899632,38.894,38.887237,38.9022212,38.933668,38.894919,38.886266,38.893028,38.895184,38.884,38.904742,38.947607,38.9003,38.897222,38.8991,38.90572,38.927872,38.903407,38.90375,38.87675,38.894758,38.916442,38.900283,38.8997,38.932514,38.910972,38.899972,38.900412,38.900413,38.889955,38.890461,38.8692,38.894832,38.91554,38.898364,38.894514,38.897324,38.902061,38.908905,38.895344,38.8923,38.90774,38.899983,38.903827,38.89696,38.897446,38.905607,38.922581,38.898069,38.844015,38.88412,38.897857,38.896104,38.897315,38.8946,38.893648,38.891696,38.892164,38.86559,38.892459,38.889,38.920669,38.906602,38.9059,38.8904,38.8881,38.88786,38.89968,38.887299,38.88412,38.881185,38.912719,38.9418,38.915417,38.928156,38.917761,38.889935,38.930282,38.896544,38.905126,38.88732,38.844711,38.876393,38.8815,38.896923,38.90268,38.885801,38.896015,38.87861,38.922649,38.928743,38.882788,38.88397,38.884734,38.888553,38.888767,38.87887,38.894573,38.893241,38.89593,38.89054,38.880834,38.881044,38.882629,38.879819,38.866611,38.883921,38.880151,38.884616,38.90509,38.903584,38.903819,38.901539,38.902204,38.803124,38.804718,38.810743,38.805317,38.902,38.805648,38.811456,38.814577,38.805767,38.9066,38.895914,38.90088,38.883669,38.884961,38.889365,38.888251,38.894722,38.90093,38.943837,38.954812,38.905707,38.863833,38.857803,38.846222,38.918809,38.956595,38.949662,38.942016,38.956432,38.847977,38.8444,38.860789,38.835213,38.84232,38.848454,38.987,38.90849,38.854691,38.955016,38.908142,38.92333,38.889988,38.912659,38.889908,38.897274,38.927095,38.897195,38.928644,38.884085,38.843222,38.863897,38.903732,38.916787,38.852248,38.834108,38.880705,38.867262,38.887378,38.894851,38.917622,38.918155,38.892275,38.88731,38.887312,38.927497,38.862478,38.856319,38.871822,38.985404,38.981103,38.983838,39.096312,39.093783,38.988562,39.084125,38.98954,39.094772,38.98128,38.983627,38.99521,38.983525,38.961763,38.921074,38.87501,38.920387,38.876737,39.120045,39.099376,39.083705,39.123513,38.990249,39.107709,38.982456,39.000578,39.095661,38.989724,38.975,38.977933,38.992375,38.990639,38.977093,39.102099,39.094103,39.076331,39.102212,38.992679,38.999388,38.997033,39.114688,39.110314,38.923583,38.90706,38.898536,38.908473,38.878433,38.873755,38.86646,38.999634,38.96115,38.899703,38.837666,38.873219,38.869418,38.941154,39.103091,39.097636,38.997445,39.085394,38.900358,38.952369,38.975219,38.920682,38.866471,38.839912,39.119765,38.964992,39.084379,38.984691,38.88992,38.903582,38.804378,38.894941,38.869442,38.898404,38.897612,38.901755,38.801111,38.82175,38.802677,38.820064,38.82595,38.820932,38.833077,38.890612,38.986743,38.864702,38.96497,38.90381,38.89841];
+  stopLng = [-77.0512,-77.05332,-77.0492,-77.049593,-77.05949,-77.059936,-77.0633,-77.0511,-77.0528,-77.051516,-77.0502,-77.0498,-77.05152,-77.0429,-77.0321,-77.027822,-77.036536,-77.042581,-77.0322,-77.047637,-77.0388,-77.0178,-77.034438,-77.031681,-77.0323,-77.045,-77.047,-77.024649,-77.0328,-76.9955,-77.019027,-76.9769,-77.0315,-76.9672,-77.057979,-76.9607,-76.947446,-76.941877,-76.994637,-76.988039,-77.0436,-77.000648,-77.0259,-77.0222,-77.0057,-77.0446,-77.0222,-77.053703,-77.0037,-77.0444,-77.0056,-77.046774,-77.03863,-77.015289,-77.0023,-76.9862,-76.9861,-77.0387,-77.063896,-77.0135,-76.9953,-77.087171,-77.074647,-77.032818,-76.9784,-76.971015,-76.996806,-77.031686,-76.947974,-77.028226,-77.059219,-76.991016,-77.046587,-77.022241,-77.026013,-77.054845,-76.995397,-77.041606,-77.079382,-76.9882,-77.019347,-77.0337,-77.022264,-77.043358,-77.043648,-77.06269,-77.02127,-76.997114,-77.0682,-77.029822,-77.023086,-76.992889,-77.00495,-76.998347,-77.001949,-76.982872,-77.000349,-76.988355,-76.9599,-76.987633,-77.03818,-77.027869,-77.031617,-77.022322,-77.038322,-77.04478,-77.016106,-77.0436,-77.071652,-76.991383,-77.053485,-77.00493,-77.009888,-77.027137,-77.070334,-77.031823,-77.050537,-77.04657,-77.026975,-77.049882,-77.070993,-77.072305,-77.076701,-77.0846,-77.079375,-76.952103,-77.046567,-77.0925,-77.04368,-77.038785,-77.0325,-77.0889,-77.09308,-77.094875,-77.041539,-77.018939,-77.017445,-77.001828,-77.022155,-77.0251,-77.012289,-77.02344,-77.04062,-76.93723,-77.055599,-76.96012,-77.056887,-76.983569,-76.987823,-77.107735,-77.10396,-77.086502,-77.02674,-77.097745,-77.078107,-77.006004,-77.077271,-77.012457,-77.103148,-77.10783,-77.093485,-77.032429,-77.02858,-77.1207,-77.01994,-77.086045,-77.089006,-77.08095,-77.091129,-77.111768,-77.109366,-77.037413,-76.985238,-77.116817,-77.107673,-77.10108,-76.9941,-77.044789,-77.0284,-77.046564,-77.04337,-77.040363,-77.043363,-77.044664,-77.049883,-77.03353,-77.05293,-77.050276,-77.052808,-77.06072,-77.05152,-77.026064,-77.048911,-77.113905,-77.08777,-77.077294,-77.049426,-77.045128,-77.018677,-77.077078,-77.082426,-77.003041,-77.080319,-77.086733,-77.069275,-77.041571,-77.019815,-77.027333,-77.032652,-77.032947,-77.075104,-77.085931,-77.09586,-77.094295,-77.089555,-77.084918,-77.029417,-77.063586,-77.100555,-77.069956,-77.038359,-77.0352,-76.995193,-77.017669,-76.983326,-76.994749,-76.978924,-76.983575,-76.990955,-76.957461,-76.999388,-76.990037,-76.987211,-77.028139,-77.105022,-77.087323,-77.08596,-77.072315,-77.001955,-77.02324,-77.01597,-77.004746,-77.013917,-77.01397,-77.025762,-76.997194,-77.086599,-77.11153,-77.107906,-77.023082,-77.097426,-77.09221,-77.192672,-77.202501,-77.096539,-77.151291,-77.098029,-77.145213,-77.011336,-77.006311,-77.02918,-77.095367,-77.085998,-77.031887,-77.0024,-77.025672,-76.994468,-77.156985,-77.188014,-77.149443,-77.15741,-77.02935,-77.152072,-77.091991,-77.00149,-77.159048,-77.023854,-77.01121,-77.006472,-77.100104,-77.100239,-77.094589,-77.200322,-77.132954,-77.141378,-77.177091,-77.029457,-77.031555,-77.025608,-77.171487,-77.182669,-77.050046,-77.015231,-76.931862,-76.933099,-77.03023,-77.089233,-77.04826,-77.109647,-77.088659,-77.008911,-77.09482,-77.082104,-77.095596,-77.062036,-77.196442,-77.196636,-77.023894,-77.145803,-77.012108,-77.002721,-77.016855,-76.995876,-77.076131,-77.087083,-77.166093,-77.103381,-77.146866,-77.094537,-77.071301,-77.067786,-77.060866,-77.09169,-77.104503,-77.024281,-77.080851,-77.051084,-77.068952,-77.047494,-77.063562,-77.057619,-77.058541,-77.053096,-77.059821,-77.084801,-77.000035,-77.048672,-77.075946,-77.034931,-77.039624];
+  // 189, up from 166 stations (up from 149)
+  for (var i = 0; i < stopName.length; i++)
+    addIcon(stopLat[i], stopLng[i], "Capital Bikeshare", stopName[i], "http://www.capitalbikeshare.com/");
+  iconImg = 'metro.png';
+  stopName = ["Addison Road-Seat Pleasant","Anacostia","Archives-Navy Memorial-Penn Quarter","Arlington Cemetery","Ballston-MU","Benning Road","Bethesda","Braddock Road","Branch Ave","Brookland-CUA","Capitol Heights","Capitol South","Cheverly","Clarendon","Cleveland Park","College Park-U of MD","Columbia Heights","Congress Heights","Court House","Crystal City","Deanwood","Dunn Loring-Merrifield","Dupont Circle","East Falls Church","Eastern Market","Eisenhower Avenue","Farragut North","Farragut West","Federal Center SW","Federal Triangle","Foggy Bottom-GWU","Forest Glen","Fort Totten","Franconia-Springfield","Friendship Heights","Gallery Pl-Chinatown","Georgia Ave-Petworth","Glenmont","Greenbelt","Grosvenor-Strathmore","Huntington","Judiciary Square","King Street","L'Enfant Plaza","Landover","Largo Town Center","McPherson Square","Medical Center","Metro Center","Minnesota Ave","Morgan Boulevard","Mt Vernon Sq 7th St-Convention Center","Navy Yard","Naylor Road","New Carrollton","New York Ave-Florida Ave-Gallaudet U","Pentagon","Pentagon City","Potomac Ave","Prince George's Plaza","Rhode Island Ave-Brentwood","Rockville","Ronald Reagan Washington National Airport","Rosslyn","Shady Grove","Shaw-Howard U","Silver Spring","Smithsonian","Southern Avenue","Stadium-Armory","Suitland","Takoma","Tenleytown-AU","Twinbrook","U Street/African-Amer Civil War Memorial/Cardozo","Union Station","Van Dorn Street","Van Ness-UDC","Vienna/Fairfax-GMU","Virginia Square-GMU","Waterfront-SEU","West Falls Church-VT/UVA","West Hyattsville","Wheaton","White Flint","Woodley Park-Zoo/Adams Morgan"];
+  stopLat = [38.886867,38.862388,38.893348,38.884327,38.882247,38.891550,38.984053,38.813033,38.824041,38.935411,38.889673,38.885014,38.916197,38.887453,38.934643,38.978195,38.928689,38.844710,38.891558,38.858088,38.908263,38.883159,38.911115,38.885987,38.884713,38.801343,38.902654,38.901324,38.885058,38.893602,38.900678,39.015227,38.952546,38.769150,38.960786,38.898423,38.936089,39.061430,39.010914,39.030641,38.795260,38.897359,38.806706,38.884920,38.931665,38.903610,38.901292,38.999617,38.898327,38.898409,38.891764,38.905210,38.876418,38.852389,38.948038,38.907265,38.866934,38.860511,38.881194,38.964943,38.921641,39.085454,38.848824,38.896595,39.117151,38.914135,38.993658,38.887577,38.839907,38.885332,38.842801,38.975008,38.947057,39.060759,38.917029,38.896255,38.799271,38.944229,38.877219,38.883428,38.876391,38.898705,38.953420,39.038442,39.047101,38.925105];
+  stopLng = [-76.898110,-76.995054,-77.021937,-77.063823,-77.111803,-76.939166,-77.094078,-77.053113,-76.911851,-76.992970,-76.913445,-77.005890,-76.915712,-77.094973,-77.058191,-76.926343,-77.032610,-76.988503,-77.084598,-77.051687,-76.933729,-77.228073,-77.044865,-77.156293,-76.996175,-77.072277,-77.039444,-77.039454,-77.015176,-77.028116,-77.050125,-77.042625,-76.997114,-77.171043,-77.085731,-77.021938,-77.024395,-77.052529,-76.910380,-77.105115,-77.072933,-77.017576,-77.059724,-77.021542,-76.889725,-76.841802,-77.032036,-77.097963,-77.027775,-76.946493,-76.864067,-77.021863,-77.004740,-76.956032,-76.871699,-77.003966,-77.056077,-77.059569,-76.985481,-76.953716,-76.994804,-77.146686,-77.045723,-77.071460,-77.164717,-77.021890,-77.032304,-77.028128,-76.977401,-76.977233,-76.932048,-77.016835,-77.079242,-77.120759,-77.029613,-77.007271,-77.130897,-77.063494,-77.272897,-77.103350,-77.017514,-77.185521,-76.965606,-77.050647,-77.112825,-77.052433];
+  for (var i = 0; i < stopName.length; i++)
+    addIcon(stopLat[i], stopLng[i], stopName[i], "", "");
+  iconImg = 'apple.png';
+  addIcon(38.905979,-77.062624, "Apple - Georgetown", "1229 Wisconsin Ave NW", "http://www.apple.com/retail/georgetown/");
+  addIcon(38.887588,-77.091183, "Apple - Clarendon", "2700 Clarendon Blvd, Arlington", "http://www.apple.com/retail/clarendon/");
+  addIcon(38.862501,-77.060489, "Apple - Pentagon City", "1100 S Hayes St, Arlington", "http://www.apple.com/retail/pentagoncity/");
+  addIcon(38.981063,-77.097471, "Apple - Bethesda", "4860 Bethesda Ave, Bethesda", "http://www.apple.com/retail/bethesdarow/");
+  addIcon(39.024202,-77.146127, "Apple - Montgomery Mall", "7101 Democracy Blvd, Bethesda", "http://www.apple.com/retail/montgomerymall/");
+  addIcon(38.918142,-77.218986, "Apple - Tysons", "1961 Chainbridge Rd, McLean", "http://www.apple.com/retail/tysons/");
+  addIcon(38.862685,-77.358924, "Apple - Fair Oaks", "11750 Fair Oaks, Fairfax", "http://www.apple.com/retail/fairoaks/");
+  addIcon(38.958566,-77.357882, "Apple - Reston", "11949 Market St, Reston", "http://www.apple.com/retail/reston/");
+  addIcon(39.405129,-76.600868, "Apple - Towson", "825 Dulaney Valley Rd, Towson", "http://www.apple.com/retail/towson/");
+  addIcon(39.215514,-76.861171, "Apple - Columbia", "10300 Little Patuxent Parkway, Columbia", "http://www.apple.com/retail/columbia/");
+  addIcon(38.989569,-76.545528, "Apple - Annapolis", "86 Annapolis Mall, Annapolis", "http://www.apple.com/retail/annapolis/");
+  addIcon(38.963246,-104.795322, "Apple - The Promenade Shops at Briargate", "1685 Briargate Parkway, Colorado Springs", "http://www.apple.com/");
+  addIcon(39.562063,-104.875188, "Apple - Park Meadows", "8401 Park Meadows Center Dr, Littleton", "http://www.apple.com/retail/parkmeadows/");
+  iconImg = 'smithsonian.png';
+  addIcon(38.888812,-77.026051, "Smithsonian Institution Building (The Castle)", "1000 Jefferson Dr SW", "http://si.edu/Museums/smithsonian-institution-building");
+  addIcon(38.888160,-77.019893, "National Air and Space Museum", "Independence Ave at 6th St SW", "http://airandspace.si.edu/");
+  addIcon(38.888160,-77.022983, "Hirshhorn Museum and Sculpture Garden", "Independence Ave at 7th St SW", "http://hirshhorn.si.edu/");
+  addIcon(38.891217,-77.029999, "National Museum of American History", "1400 Constitution Ave., NW ", "http://americanhistory.si.edu/");
+  addIcon(38.887960,-77.025558, "National Museum of African Art", "950 Independence Ave SW", "http://africa.si.edu/");
+  addIcon(38.888310,-77.016610, "National Museum of the American Indian", "4th St and Independence Ave SW", "http://americanindian.si.edu/");
+  addIcon(38.888177,-77.027425, "Freer Gallery of Art", "Jefferson Dr and 12th St SW", "http://asia.si.edu/");
+  addIcon(38.887960,-77.026523, "Sackler Gallery", "1050 Independence Ave SW", "http://asia.si.edu/");
+  addIcon(38.891283,-77.026073, "National Museum of Natural History", "10th St and Constitution Ave NW", "http://www.mnh.si.edu/");
+  addIcon(38.897913,-77.008241, "National Postal Museum", "2 Massachusetts Ave NE", "http://postalmuseum.si.edu/");
+  addIcon(38.897713,-77.022768, "Smithsonian American Art Museum", "8th St and F St NW", "http://americanart.si.edu/");
+  addIcon(38.897964,-77.023369, "National Portrait Gallery", "8th St and F St NW", "http://www.npg.si.edu/");
+  addIcon(38.899049,-77.039076, "Renwick Gallery", "1661 Pennsylvania Ave NW", "http://americanart.si.edu/renwick/");
+  addIcon(38.930379,-77.054095, "National Zoo", "3001 Connecticut Ave NW", "http://nationalzoo.si.edu/");
+  addIcon(38.911205,-77.443961, "Udvar-Hazy Center", "14390 Air and Space Museum Parkway, Chantilly", "http://airandspace.si.edu/udvarhazy/");
+  addIcon(40.704347,-74.013788, "George Gustav Heye Center", "Alexander Hamilton U.S. Custom House, 1 Bowling Green, New York City", "http://americanindian.si.edu/");
+  addIcon(38.856653,-76.976827, "Anacostia Community Museum", "1901 Fort Pl SE", "http://anacostia.si.edu/");
+  addIcon(40.784408,-73.957926, "Cooper-Hewitt National Design Museum", "2 E 91st St, New York City", "http://cooperhewitt.org/");
+  iconImg = 'ikea.png';
+  addIcon(39.020917,-76.928594, "IKEA", "10100 Baltimore Ave, College Park", "http://www.ikea.com/us/en/store/college_park");
+  addIcon(39.375296,-76.461993, "IKEA - Baltimore", "8352 Honeygo Blvd, White Marsh", "http://www.ikea.com/us/en/store/baltimore");
+  addIcon(38.643322,-77.289380, "IKEA", "2901 Potomac Mills Circle, Woodbridge", "http://www.ikea.com/us/en/store/woodbridge");
+  addIcon(40.671801,-74.011399, "IKEA - Red Hook", "1 Beard St, Brooklyn, New York City", "http://www.ikea.com/us/en/store/brooklyn");
+  addIcon(39.571806,-104.875124, "IKEA - Denver", "9800 E Ikea Way, Centennial", "http://www.ikea.com/us/en/store/centennial");
+  iconImg = 'cinema.png';
+  addIcon(38.896377,-77.026631, "E Street Cinema", "555 11th St NW (entrance on E St)", "http://www.landmarktheatres.com/market/WashingtonDC/EStreetCinema.htm");
+  addIcon(38.934961,-77.058434, "The Uptown", "3426 Connecticut Ave NW", "http://www.amctheatres.com/Uptown1/");
+  addIcon(38.965365,-77.076089, "The Avalon", "5612 Connecticut Ave NW", "http://www.theavalon.org/");
+  addIcon(38.905440,-77.050339, "West End Cinema", "2301 M St NW", "http://www.westendcinema.com/");
+  addIcon(38.899233,-77.021159, "Regal Cinemas", "701 7th St NW", "http://www.regmovies.com/");
+  addIcon(38.902689,-77.061861, "AMC Loews Georgetown 14", "3111 K St NW", "http://www.amctheatres.com/Georgetown/");
+  addIcon(38.959793,-77.085553, "AMC Mazza Gallerie", "5300 Wisconsin Ave NW", "http://www.amctheatres.com/MazzaGallerie/");
+  addIcon(38.862664,-77.087300, "Arlington Cinema & Drafthouse", "2903 Columbia Pike, Arlington", "http://arlingtondrafthouse.com/");
+  addIcon(38.841730,-77.088566, "AMC Loews Shirlington 7", "2772 S Randolph St, Arlington", "http://www.amctheatres.com/Shirlington/");
+  addIcon(38.890181,-77.085103, "AMC Courthouse Plaza 8", "2150 Clarendon Blvd, Arlington", "http://www.amctheatres.com/Courthouse/");
+  addIcon(38.878890,-77.111408, "Regal Ballston Common 12", "671 N Glebe Rd, Arlington", "http://www.regmovies.com/");
+  addIcon(38.981513,-77.095212, "Bethesda Row Cinema", "7235 Woodmont Ave, Bethesda", "http://landmarktheatres.com/market/WashingtonDC/BethesdaRowCinema.htm");
+  addIcon(38.996636,-77.027556, "AFI Silver Theatre", "8633 Colesville Rd, Silver Spring", "http://www.afi.com/silver/");
+  addIcon(38.996591,-77.025406, "Regal Majestic Stadium 20", "900 Ellsworth Dr, Silver Spring", "http://www.regmovies.com/");
+  addIcon(39.001402,-76.876011, "Old Greenbelt Theatre", "129 Centerway, Greenbelt", "dfgdfg");
+  addIcon(38.836916,-77.051359, "Regal Potomac Yard 16", "3575 Jefferson Davis Hwy, Alexandria", "http://www.regmovies.com/");
+  //addIcon(dfgdfgdfg, "dfsdfrwedf", "sadasdasd", "dfgdfg");
+  //bike color is 41, 170, 217 = 29aad9
+  infowindow = new google.maps.InfoWindow();
+  //infowindow.setOptions({maxWidth:260});
+  for (var i = 0; i < marker.length; i++)
+    google.maps.event.addListener(marker[i], 'click', panFunction(i) );
+  if (parameter('groceries') != null) {
+    var showGroceries = false; // really just a placeholder for the function call
+    g = document.getElementById("groceries");
+    g.checked = true;
+    clickGroceries(g);
+    showGroceries = true;
+    }
+  if (parameter('cupcakes') != null) {
+    var showCupcakes = false; // really just a placeholder for the function call
+    showCupcakes = pseudoClick("cupcake.png", showCupcakes);
+    document.getElementById('cupcakes').checked = true;
+    }
+  if (parameter('cabi') != null) {
+    var showCabi = false; // really just a placeholder for the function call
+    showCabi = pseudoClick("cabi.png", showCabi);
+    document.getElementById('cabi').checked = true;
+    }
+  heatmap = new google.maps.visualization.HeatmapLayer({
+    dissipating: false,
+    radius: 0.015
+    });
+  }
+
+info = new Array(1);
+marker = new Array(1);
+google.maps.event.addDomListener(window, 'load', initialize);
+</script>
+<body>
+<table width=100% height=100% cellpadding=0 cellspacing=0 border=0>
+<tr><td height=99% ><div id="map_canvas" ></div></td></tr>
+<tr><td id="mapControl"">
+<table width=100% cellpadding=2 cellspacing=0 border=0>
+<tr>
+<td valign=top align=left>
+<span class=nobr style="background-color:#29aad9"><input type=checkbox id=bikeshop checked onclick="clickIt(this,'cycling.png')"><label for=bikeshop>Bike shops</label><input id=bikeshopNo type=number value=1 size=3 style="text-align: right" > </span>
+<span class=nobr style="background-color:#9c6251"><input type=checkbox id=metro onclick="clickIt(this,'metro.png')"><label for=metro>Metro</label></span>
+<span class=nobr style="background-color:#9c5350"><input type=checkbox id=railair onclick="clickIt(this,'airport.png');clickIt(this,'train.png')"><label for=railair>Rail & Air</label></span>
+<span class=nobr style="background-color:#97519c"><input type=checkbox id=cupcakes onclick="clickIt(this,'cupcake.png')"><label for=cupcakes>Cupcakes</label></span>
+<span class=nobr style="background-color:#9c9a51"><input type=checkbox id=theatre onclick="clickIt(this,'theater.png')"><label for=theatre>Theatre</label></span>
+<span class=nobr style="background-color:#51549c"><input type=checkbox id=bowling onclick="clickIt(this,'bowling.png')"><label for=bowling>Bowling</label></span>
+<span class=nobr style="background-color:#5f9c51"><input type=checkbox id=groceries onclick="clickGroceries(this)"><label for=groceries>Groceries</label></span>
+<span class=nobr style="background-color:#f2192b"><input type=checkbox id=cabi onclick="clickIt(this,'cabi.png')"><label for=cabi>Capital Bikeshare</label></span>
+</td><td valign=top align=right>
+<a href="http://www.mvjantzen.com/blog/?p=929" title="Mapping Bike Shops, and Beyond">About</a></td></tr>
+</td></tr>
+</table>
+</body>
+</html>
