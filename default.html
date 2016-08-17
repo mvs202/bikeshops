@@ -182,6 +182,7 @@ function loadArl() {
   addIcon(38.896506,-77.096719, "Big Wheel Bikes", "3119 Lee Hwy, Arlington", "http://www.bigwheelbikes.com/");
   addIcon(38.880965,-77.090255, "The Old Bike Shop", "2647 N Pershing Dr, Arlington", "https://www.facebook.com/pages/The-Old-Bike-Shop/358068734263449");
   addIcon(38.882688,-77.100110, "Hybrid Pedals", "822 N Kenmore St, Arlington", "http://www.hybridpedals.com/");
+  addIcon(38.882354,-77.101593, "Conte's Bike Shop", "3449 Wilson Blvd, Arlington", "http://contebikes.com/pages/contes-bike-shop-in-arlington");
   }
 
 function loadAlex() {
@@ -191,6 +192,14 @@ function loadAlex() {
   addIcon(38.775499,-77.059182, "Spokes Etc", "1506 Belle View Blvd, Alexandria VA", "http://spokesetc.com/");
   addIcon(38.825364,-77.058465, "VeloCity Bicycle Cooperative", "2111 Mt Vernon Ave, Alexandria", "http://velocitycoop.org/");
   addIcon(38.813546,-77.040986, "Wheel Nuts", "302 Montgomery St, Alexandria", "http://wheelnutsbikeshop.com/");
+  }
+
+function loadFairfax() {
+  addIcon(38.852768,-77.321650, "Spokes Etc", "10937 Lee Hwy, Fairfax", "http://spokesetc.com/");
+  addIcon(38.865793,-77.272319, "Hudson Trail Outfitters", "9488 Fairfax Blvd, Fairfax", "http://www.hudsontrail.com/");
+  addIcon(38.857885,-77.358390, "REI Fairfax", "11950 Grand Commons Ave, Fairfax", "http://www.rei.com/stores/84");
+  addIcon(38.865304,-77.273053, "Performance Bicycle - Fairfax Circle Plaza", "9504 Arlington Blvd, Fairfax", "http://www.performancebike.com/");
+  addIcon(38.845758,-77.304023, "Oasis Bike Works", "10376 Main St, Fairfax", "http://www.oasisbikeworks.com/");
   }
 
 function loadColo() {
@@ -265,6 +274,16 @@ function initialize() {
     map.fitBounds(bounds);
     loadDC();
     loadAlex();
+    loadFairfax();
+    }
+  else if (parameter('fairfax') != null) {
+    loadFairfax();
+    for (var i = 0; i < marker.length; i++)
+      bounds.extend(marker[i].getPosition());
+    map.fitBounds(bounds);
+    loadDC();
+    loadAlex();
+    loadArl();
     }
   else if (parameter('alexandria') != null) {
     loadAlex();
@@ -273,6 +292,7 @@ function initialize() {
     map.fitBounds(bounds);
     loadDC();
     loadArl();
+    loadFairfax();
     }
   else if (parameter('colo') != null) {
     loadColo();
@@ -282,6 +302,7 @@ function initialize() {
     loadAlex();
     loadDC();
     loadArl();
+    loadFairfax();
     }
   else {
     loadDC();
@@ -295,7 +316,9 @@ function initialize() {
       map.fitBounds(bounds);
     loadArl();
     loadAlex();
+    loadFairfax();
     }
+  addIcon(38.895274,-77.191844, "Conte's Bike Shop", "7121 Leesburg Pike Suite 101, Falls Church", "http://contebikes.com/pages/contes-bike-shop-in-falls-church");
   addIcon(38.684790,-77.316789, "Village Skis & Bikes", "12383 Dillingham Sq, Woodbridge", "http://vsbsports.com/");
   addIcon(38.296041,-77.491713, "Olde Towne Bicycles", "1907 Plank Rd, Fredericksburg", "http://oldetownebicycles.com/");
   addIcon(38.636394,-77.295849, "Olde Towne Bicycles", "14477 Potomac Mills Rd, Woodbridge", "http://oldetownebicycles.com/");
@@ -310,12 +333,10 @@ function initialize() {
   addIcon(38.981797,-76.540142, "Eastern Mountain Sports", "200 Harker Pl, Annapolis", "http://www.ems.com/shop/index.jsp?kw=storeDetail&f=160");
   addIcon(39.059975,-77.471060, "Spokes Etc", "20070 Ashbrook Commons Plaza, Ashburn", "http://spokesetc.com/");
   addIcon(38.904209,-77.262322, "Spokes Etc", "224 Maple Ave E, Vienna", "http://spokesetc.com/");
-  addIcon(38.852768,-77.321650, "Spokes Etc", "10937 Lee Hwy, Fairfax", "http://spokesetc.com/");
   addIcon(39.072203,-77.132748, "Revolution Cycles", "1066 Rockville Pike, Rockville", "http://revolutioncycles.com/");
   addIcon(38.453345,-77.406312, "Revolution Cycles", "2723 Jefferson Davis Hwy #111, Stafford", "http://revolutioncycles.com/");
   addIcon(38.989152,-76.545056, "Hudson Trail Outfitters", "1079 Annapolis Mall, Annapolis", "http://www.hudsontrail.com/");
   addIcon(39.055543,-77.117127, "Hudson Trail Outfitters", "Montrose Crossing Shopping Centern, 12085 Rockville Pike, Rockville", "http://www.hudsontrail.com/");
-  addIcon(38.865793,-77.272319, "Hudson Trail Outfitters", "9488 Fairfax Blvd, Fairfax", "http://www.hudsontrail.com/");
   addIcon(38.980946,-77.099992, "Griffin Cycle", "4949 Bethesda Ave, Bethesda", "http://griffincycle.com/");
   addIcon(38.985913,-77.096644, "Freshbikes Cycling", "7626 Old Georgetown Rd, Bethesda", "http://www.freshbikescycling.com/");
   addIcon(38.994531,-77.076411, "City Bikes - Chevy Chase", "8401 Connecticut Ave, Chevy Chase", "http://citybikes.com/");
@@ -333,14 +354,12 @@ function initialize() {
   addIcon(38.890457,-77.183238, "Bikenetic", "922 W Broad St, Falls Church", "http://www.bikenetic.com/");
   addIcon(38.880034,-77.175996, "Bike Club", "438 S Washington St, Falls Church", "http://www.bikeclubva.com/");
   addIcon(38.901283,-77.266900, "Bikes @ Vienna", "128-A Church Street NW, Vienna", "http://www.bikesatvienna.com/");
-  addIcon(38.865304,-77.273053, "Performance Bicycle - Fairfax Circle Plaza", "9504 Arlington Blvd, Fairfax", "http://www.performancebike.com/");
   addIcon(38.851147,-77.131525, "Performance Bicycle - Bailey's Crossroad Shopping Center", "5817 Leesburg Pike, Bailey's Crossroad", "http://www.performancebike.com/");
   addIcon(38.952050,-77.347444, "Performance Bicycle - Plaza America Shopping Center", "11634 Plaza America Dr, Reston", "http://www.performancebike.com/");
   addIcon(38.922274,-77.236251, "Performance Bicycle - Pike 7 Plaza", "8387 Leesburg Pike, Vienna", "http://www.performancebike.com/");
   addIcon(39.062149,-77.126954, "Performance Bicycle - Congressional Plaza", "1667 Rockville Pike, Rockville", "http://www.performancebike.com/");
   addIcon(38.627013,-77.287256, "REI Woodbridge", "15200 Potomac Town Place, Suite 140, Woodbridge", "http://www.rei.com/stores/144");
   addIcon(39.013865,-76.920136, "REI College Park", "Hollywood Plaza, 9801 Rhode Island Ave, College Park", "http://www.rei.com/stores/27");
-  addIcon(38.857885,-77.358390, "REI Fairfax", "11950 Grand Commons Ave, Fairfax", "http://www.rei.com/stores/84");
   addIcon(38.849192,-77.123435, "REI Bailey's Crossroads", "3509 Carlin Springs Rd, Bailey's Crossroads", "http://www.rei.com/stores/34");
   addIcon(39.060991,-77.124003, "REI Rockville", "1701 Rockville Pike, Rockville", "http://www.rei.com/stores/91");
   addIcon(39.449533,-77.399198, "The Bicycle Escape", "7820-E Wormans Mill Rd, Frederick", "http://www.thebicycleescape.com/");
@@ -352,7 +371,6 @@ function initialize() {
   addIcon(39.111507,-77.554809, "Bicycle Outfitters", "34D Catoctin Circle NE, Leesburg", "http://www.bikeoutfitters.com/");
   addIcon(38.779497,-77.233332, "The Bike Lane", "8416 Old Keene Mill Rd, Springfield", "http://thebikelane.com/");
   addIcon(38.957886,-77.358439, "The Bike Lane", "11943 Democarcy Dr, Reston", "http://thebikelane.com/");
-  addIcon(38.845758,-77.304023, "Oasis Bike Works", "10376 Main St, Fairfax", "http://www.oasisbikeworks.com/");
   addIcon(39.331148,-76.628948, "Twenty20 Cycling Company", "725 W 36th St, Baltimore", "http://www.twenty20cycling.com/");
   addIcon(39.310444,-76.619243, "Baltimore Bicycle Works", "1813 Falls Rd, Baltimore", "http://www.baltimorebicycleworks.com/");
   addIcon(39.277398,-76.824583, "CycleSport", "9050 Baltimore National Pike, Ellicott City", "http://cyclesportec.com/");
@@ -391,6 +409,7 @@ function initialize() {
   addIcon(38.804032,-77.043622, "Lavender Moon Cupcakery", "116 S Royal St, Alexandria", "http://alexandriacupcake.com/");
   addIcon(38.805487,-77.051112, "Alexandria Cupcake", "1022 King St, Alexandria", "http://alexandriacupcake.com/");
   addIcon(38.857973,-77.357751, "Cupcakes Actually", "11944 Grand Commons Ave, Fairfax", "http://cupcakesactually.com/");
+  addIcon(39.088540,-77.523368, "Cupcakes Actually", "1607 Village Market Blvd, Suite 108, Leesburg", "http://cupcakesactually.com/");
   addIcon(39.024168,-77.145978, "YoCake", "Montgomery Mall, 7101 Democracy Blvd, Bethesda", "http://www.yocake.com/");
   addIcon(38.894356,-77.274960, "Cupcakes!", "527 Maple Ave W, Vienna", "http://www.cupcakescupcakery.com/");
   addIcon(39.083759,-77.153845, "CakeDreams", "90 W Montgomery Ave, Rockville", "www.cakedreamsmd.com/");
@@ -530,6 +549,8 @@ function initialize() {
   addIcon(38.878907,-104.717860, "Whole Foods Market - First & Main", "3180 New Center Point, Colorado Springs", "http://wholefoodsmarket.com/stores/ncp");
   addIcon(39.545419,-104.943209, "Whole Foods Market - Highlands Ranch", "9366 S Colorado Blvd, Highlands Ranch", "http://wholefoodsmarket.com/stores/highlandsranch");
   addIcon(39.592197,-104.961619, "Whole Foods Market - SouthGlenn", "6853 S York St, Centennial", "http://wholefoodsmarket.com/stores/southglenn");
+  addIcon(38.857821,-77.377636, "Whole Foods Market - Fair Lakes", "4501 Market Commons Dr, Fairfax", "http://www.wholefoodsmarket.com/stores/fairlakes");
+  addIcon(38.902289,-77.262850, "Whole Foods Market - Vienna", "143 Maple Ave E, Vienna", "http://www.wholefoodsmarket.com/stores/vienna");
   iconImg = 'harristeeter.png';
   addIcon(38.921882,-77.038398, "Harris Teeter - Citadel", "1631 Kalorama Rd NW", "http://locations.harristeeter.com/DC/WASHINGTON/231/");
   addIcon(38.905841,-77.005653, "Harris Teeter - Constitution Square", "1201 1st St NE", "locations.harristeeter.com/DC/WASHINGTON/352/");
@@ -551,6 +572,7 @@ function initialize() {
   addIcon(39.031419,-77.003542, "Trader Joe\'s", "10741 Columbia Pike, Silver Spring", "http://www.traderjoes.com/");
   addIcon(38.904330,-77.204083, "Trader Joe\'s", "7514 Leesburg Turnpike, Falls Church", "http://www.traderjoes.com/");
   addIcon(39.057251,-77.123617, "Trader Joe\'s", "12268-H Rockville Pike, Rockville", "http://www.traderjoes.com/");
+  addIcon(38.842581,-77.270354, "Trader Joe\'s", "9464 Main St, Fairfax", "http://www.traderjoes.com/");
   iconImg = 'target.png';
   addIcon(38.929761,-77.033045, "Target", "3100 14th St NW", "http://www.target.com/store-locator/store-details/storeNumber=2259");
   addIcon(38.968185,-76.957558, "Target", "3500 East West Hwy, Hyattsville", "http://www.target.com/store-locator/store-details/storeNumber=1890");
