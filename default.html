@@ -76,18 +76,27 @@ function checkInput(e) {
   else if (keynum == 102 || keynum == 70) // F
     showFuture = pseudoClick("futuregrocery.png", showFuture);
   else if (keynum == 104 || keynum == 72) {  // H
+    drawHeatmap();
+    }
+  // alert(keynum + ": " + String.fromCharCode(keynum));
+  }
+
+function drawHeatmap() {
+  if (heatmap.getMap() == null) {
     var dataPoints = [];
     for (var i=0; i < marker.length; i++) {
       if (marker[i].getVisible() && map.getBounds().contains(marker[i].getPosition())) {
-        if (marker[i].icon == "cycling.png") w = parseFloat(document.getElementById("bikeshopNo").value);
-        else w = 1;
-        dataPoints.push({location: marker[i].getPosition(), weight: w});
+        dataPoints.push({location: marker[i].getPosition(), weight: 1});
         }
       }
     heatmap.setData(dataPoints);
     heatmap.setMap(map);
+    document.getElementById("heatmapButton").innerHTML = "erase heatmap";
     }
-  // alert(keynum + ": " + String.fromCharCode(keynum));
+  else {
+    document.getElementById("heatmapButton").innerHTML = "draw heatmap";
+    heatmap.setMap(null);
+    }
   }
 
 function pseudoClick(png, showIt) {
@@ -738,7 +747,7 @@ function initialize() {
     }
   heatmap = new google.maps.visualization.HeatmapLayer({
     dissipating: false,
-    radius: 0.012
+    radius: 0.011
     });
   }
 
@@ -753,7 +762,7 @@ google.maps.event.addDomListener(window, 'load', initialize);
 <table width=100% cellpadding=2 cellspacing=0 border=0>
 <tr>
 <td valign=top align=left>
-<span class=nobr style="background-color:#29aad9"><input type=checkbox id=bikeshop checked onclick="clickIt(this,'cycling.png')"><label for=bikeshop>Bike shops</label><input id=bikeshopNo type=number value=1 size=3 style="text-align: right" > </span>
+<span class=nobr style="background-color:#29aad9"><input type=checkbox id=bikeshop checked onclick="clickIt(this,'cycling.png')"><label for=bikeshop>Bike shops</label></span>
 <span class=nobr style="background-color:#9c6251"><input type=checkbox id=metro onclick="clickIt(this,'metro.png')"><label for=metro>Metro</label></span>
 <span class=nobr style="background-color:#9c5350"><input type=checkbox id=railair onclick="clickIt(this,'airport.png');clickIt(this,'train.png')"><label for=railair>Rail & Air</label></span>
 <span class=nobr style="background-color:#97519c"><input type=checkbox id=cupcakes onclick="clickIt(this,'cupcake.png')"><label for=cupcakes>Cupcakes</label></span>
@@ -761,6 +770,7 @@ google.maps.event.addDomListener(window, 'load', initialize);
 <span class=nobr style="background-color:#51549c"><input type=checkbox id=bowling onclick="clickIt(this,'bowling.png')"><label for=bowling>Bowling</label></span>
 <span class=nobr style="background-color:#5f9c51"><input type=checkbox id=groceries onclick="clickGroceries(this)"><label for=groceries>Groceries</label></span>
 <span class=nobr style="background-color:#f2192b"><input type=checkbox id=cabi onclick="clickIt(this,'cabi.png')"><label for=cabi>Capital Bikeshare</label></span>
+<button id=heatmapButton onclick="drawHeatmap()">draw heatmap</button>
 </td><td valign=top align=right>
 <a href="http://www.mvjantzen.com/blog/?p=929" title="Mapping Bike Shops, and Beyond">About</a></td></tr>
 </td></tr>
